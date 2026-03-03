@@ -1138,12 +1138,34 @@ function initAdminData(){
     fetch(URL_APPS_SCRIPT+"?action=getGuruAdmin").then(r=>r.json()).then(res=>{dataGuruAdmin=res.data||[];currentPageGuru=1;renderTableGuru();updateDash();});
     fetch(URL_APPS_SCRIPT+"?action=getJurnalAdmin").then(r=>r.json()).then(res=>{dataJurnalAdmin=res.data||[];renderJurnalAdmin();});
     fetch(URL_APPS_SCRIPT+"?action=getSettings").then(r=>r.json()).then(res=>{if(res.status==='success'){let a=0,p=0;res.data.forEach(item=>{let st=String(item.status).toUpperCase().trim();if(st==="AKTIF")a++;else if(st==="PKL")p++;});document.getElementById("dash-kelas-aktif").innerText=a;document.getElementById("dash-kelas-pkl").innerText=p;}});
-    fetch(URL_APPS_SCRIPT+"?action=getStatistikHariIni&tanggal="+getLocalDate()).then(r=>r.json()).then(res=>{if(res.status==='success'){let d=res.data;document.getElementById("dash-hadir").innerText=`H:${d.H} S:${d.S} I:${d.I} A:${d.A}`;buildChart(d);}});
+
+    let tgl=getLocalDate();
+    let p=tgl.split("-");
+    let tglSheet=`${p[2]}-${p[1]}-${p[0]}`;
+    fetch(URL_APPS_SCRIPT+`?action=getStatistikHariIni&tanggal=${tglSheet}`).then(r=>r.json()).then(res=>{if(res.status==='success'){let d=res.data;document.getElementById("dash-hadir").innerText=`H:${d.H||0} S:${d.S||0} I:${d.I||0} A:${d.A||0}`;buildChart(d);}});
 }
 
 function updateDash(){
     let totalAktif=0;
-    if(dataSiswaAdmin.length>1){let h=dataSiswaAdmin[0];let ik=2;for(let i=0;i<h.length;i++){if(String(h[i]).toLowerCase().includes("kelas")||String(h[i]).toLowerCase().includes("rombel")){ik=i;break;}}for(let i=1;i<dataSiswaAdmin.length;i++){let k=String(dataSiswaAdmin[i][ik]).toUpperCase();if(!k.includes("LULUS")&&k!=="")totalAktif++;}}
+    if(dataSiswaAdmin.length>1){
+        let h=dataSiswaAdmin[0];
+        let iKl=2,iSt=-1;
+        for(let i=0;i<h.length;i++){
+            let hh=String(h[i]).toLowerCase().trim();
+            if(hh.includes("kelas")||hh.includes("rombel"))iKl=i;
+            if(hh.includes("status keaktifan"))iSt=i;
+        }
+        for(let i=1;i<dataSiswaAdmin.length;i++){
+            let k=String(dataSiswaAdmin[i][iKl]).toUpperCase().trim();
+            if(k===""||k.includes("LULUS"))continue;
+            if(iSt!==-1){
+                let st=String(dataSiswaAdmin[i][iSt]).toUpperCase().trim();
+                if(st==="AKTIF")totalAktif++;
+            }else{
+                totalAktif++;
+            }
+        }
+    }
     document.getElementById("dash-siswa").innerText=totalAktif;
     let tG=0,tT=0;
     if(dataGuruAdmin.length>1){for(let i=1;i<dataGuruAdmin.length;i++){let n=String(dataGuruAdmin[i][0]).trim();let r=String(dataGuruAdmin[i][5]).toLowerCase().trim();if(n==="")continue;if(r==="guru"||r==="guru bk"||r==="kepala sekolah")tG++;else tT++;}}
