@@ -762,7 +762,13 @@ function injectAbsensiAdmin(){
         </div>
         <div style="font-size:.85rem;margin-bottom:5px;"><strong>Ket:</strong> H=Hadir S=Sakit I=Ijin A=Alpa T=Terlambat B=Bolos D=Dispen</div>
         <div class="siswa-list" id="list-siswa-admin"><div style="text-align:center;color:#64748b;padding:20px;">Pilih Kelas &amp; Tanggal</div></div>
-        <button class="btn btn-primary" onclick="simpanAbsenAdmin()"><i class="fa-solid fa-floppy-disk"></i> SIMPAN PRESENSI</button>`;
+        <button class="btn btn-primary" onclick="simpanAbsenAdmin()"><i class="fa-solid fa-floppy-disk"></i> SIMPAN PRESENSI</button>
+        <div style="display:flex;gap:10px;margin-top:15px;width:100%;">
+            <button id="btn-jurnal-bk" class="btn btn-warning" style="flex:1 1 0;padding:12px 5px;font-size:.9rem;" onclick="buatJurnal()" disabled><i class="fa-solid fa-book-open"></i> BUAT JURNAL HARIAN</button>
+            <button id="btn-rekap-jurnal-bk" class="btn btn-purple" style="flex:1 1 0;padding:12px 5px;font-size:.9rem;" onclick="buatRekapJurnalMengajar()" disabled><i class="fa-solid fa-file-signature"></i> REKAP JURNAL MENGAJAR</button>
+        </div>
+        <div style="margin-top:15px;"><button class="btn btn-info" onclick="bukaHalamanStatus()"><i class="fa-solid fa-list-check"></i> CEK KETERISIAN ABSEN</button></div>
+        <div style="margin-top:15px;"><button class="btn btn-success" onclick="buatRekap()"><i class="fa-solid fa-file-excel"></i> BUAT REKAP BULANAN</button></div>`;
 
     fetch(URL_APPS_SCRIPT+"?action=getClasses").then(r=>r.json()).then(res=>{
         let sel=document.getElementById("select_kelas_admin");
@@ -903,7 +909,7 @@ function simpanAbsenAdmin(){
     loading(true,"Menyimpan...");
     fetch(URL_APPS_SCRIPT,{method:"POST",body:fd}).then(r=>r.json()).then(res=>{
         loading(false);
-        if(res.status==="success")swal("Berhasil","Absensi tersimpan.","success");
+        if(res.status==="success"){swal("Berhasil","Absensi tersimpan.","success");let b1=document.getElementById("btn-jurnal-bk");let b2=document.getElementById("btn-rekap-jurnal-bk");if(b1)b1.disabled=false;if(b2)b2.disabled=false;}
         else swal("Gagal",res.message,"error");
     }).catch(()=>{loading(false);swal("Error","Gagal koneksi","error");});
 }
