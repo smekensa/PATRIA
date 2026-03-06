@@ -508,8 +508,8 @@
                         </div>
                     </div>
                     <div class="table-container">
-                        <table class="status-table"><thead><tr><th>No</th><th style="text-align:left;min-width:160px;">Nama Siswa</th><th>Kelas</th><th>Status</th><th>Tanggal</th></tr></thead>
-                        <tbody id="tbody-rekap-tidak-hadir"><tr><td colspan="5" style="text-align:center;color:#64748b;padding:25px;">Klik menu untuk memuat data...</td></tr></tbody></table>
+                        <table class="status-table"><thead><tr><th>No</th><th style="text-align:left;min-width:160px;">Nama Siswa</th><th>Kelas</th><th>Status</th><th>Tanggal</th><th>Bukti</th></tr></thead>
+                        <tbody id="tbody-rekap-tidak-hadir"><tr><td colspan="6" style="text-align:center;color:#64748b;padding:25px;">Klik menu untuk memuat data...</td></tr></tbody></table>
                     </div>
                     <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:12px;gap:8px;">
                         <button class="btn btn-secondary btn-icon" onclick="rthPrevPage()"><i class="fa-solid fa-chevron-left"></i></button>
@@ -539,7 +539,7 @@
 
 <!-- ===================== SCRIPT ===================== -->
 <script>
-const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbxCfzY_5nDH_UV-FzWSFBYMMNXqS6paRy7f_Tyvf06ASZCRSqAVoFuSAefQYxVuWURyuw/exec";
+const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbwRfqOEGo6qTy5m8EKYso5Kh3gEdQgKI2CHRiSASOVmvjsutFwHAqPoVgRr52XtXoLwEQ/exec";
 
 // Lazy load app config
 fetch(`${URL_APPS_SCRIPT}?action=getAppConfig`).then(r=>r.json()).then(res=>{
@@ -815,7 +815,7 @@ function renderListSiswaAdmin(){
     DATA_SISWA_ADMIN_ABSEN.forEach((s,idx)=>{
         // Admin / BK: semua radio bebas (tidak ada batasan)
         html+=`<div class="siswa-item">
-            <div class="siswa-info"><span class="siswa-name">${s.no}. ${s.nama}</span><span class="siswa-details">NIS: ${s.nis} | L/P: ${s.lp}</span></div>
+            <div class="siswa-info"><span class="siswa-name">${s.absen}. ${s.nama}</span><span class="siswa-details">NIS: ${s.nis} | L/P: ${s.lp}</span></div>
             <div class="absen-options">
                 ${["H","S","I","A","T","B","D"].map(v=>`<input type="radio" id="adm_${v.toLowerCase()}_${idx}" name="st_adm_${idx}" value="${v}" class="radio-btn"${v==="H"?" checked":""} onchange="pilihAbsenAdmin(${idx},this.value)"><label for="adm_${v.toLowerCase()}_${idx}" class="radio-label">${v}</label>`).join("")}
             </div>
@@ -849,12 +849,12 @@ window.pilihAbsenAdmin=function(idx,val){
     }
 };
 
-window.handleUploadAdmin=function(idx){
+window.handleUploadAdmin=async function(idx){
     let fi=document.getElementById(`file-adm-${idx}`);let file=fi.files[0];if(!file)return;
     let sd=document.getElementById(`upload-status-adm-${idx}`);
     let kelas=document.getElementById("select_kelas_admin")?.value||"Umum";
-    const kirim=(b64)=>{
-        sd.innerHTML="<i>⏳ Mengupload...</i>";
+    const kirim=(b64,ukuran)=>{
+        sd.innerHTML=`<i>⏳ Mengupload${ukuran?" ("+ukuran+")":""}...</i>`;
         fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify({action:"uploadBuktiSurat",fileName:file.name,fileData:b64,kelas:kelas})})
         .then(r=>r.json()).then(res=>{
             if(res.status==="success"){
@@ -862,12 +862,22 @@ window.handleUploadAdmin=function(idx){
                 document.getElementById(`fileid-surat-adm-${idx}`).value=res.fileId||"";
                 sd.innerHTML=`<a href="${res.url}" target="_blank" class="btn btn-info btn-icon" style="margin-top:0;">Lihat Dokumen</a> <button onclick="hapusSuratAdmin(${idx})" class="btn btn-danger btn-icon" style="margin-top:0;">Hapus</button>`;
                 fi.style.display="none";
+                let s=DATA_SISWA_ADMIN_ABSEN[idx];
+                let tgl=document.getElementById("tgl_absen_admin")?.value;
+                if(s&&tgl)fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify({action:"saveBuktiSurat",nis:s.nis,tanggal:tgl,nama:s.nama,url:res.url,fileId:res.fileId||""})}).catch(()=>{});
             }else sd.innerHTML=`<i style="color:red;">❌ Gagal: ${res.message}</i>`;
-        }).catch(()=>{sd.innerHTML="<i style='color:red;'>❌ Error koneksi!</i>";});
+        }).catch(()=>{sd.innerHTML="<i style='color:red;'>❌ Gagal koneksi. Cek internet & coba lagi.</i>";});
     };
-    if(file.type==="application/pdf"){if(file.size>5*1024*1024){sd.innerHTML="<i style='color:red;'>❌ PDF max 5MB!</i>";fi.value="";return;}let r=new FileReader();r.onload=e=>kirim(e.target.result);r.readAsDataURL(file);}
-    else if(file.type.startsWith("image/")){let r=new FileReader();r.onload=e=>kirim(e.target.result);r.readAsDataURL(file);}
-    else{sd.innerHTML="<i style='color:red;'>❌ Format tidak didukung!</i>";fi.value="";}
+    if(file.type==="application/pdf"){
+        if(file.size>5*1024*1024){sd.innerHTML="<i style='color:red;'>❌ PDF max 5MB!</i>";fi.value="";return;}
+        sd.innerHTML="<i>⏳ Memproses PDF...</i>";
+        let r=new FileReader();r.onload=e=>kirim(e.target.result,(file.size/1024).toFixed(0)+"KB");r.readAsDataURL(file);
+    }else if(file.type.startsWith("image/")){
+        sd.innerHTML="<i>⏳ Mengkompresi gambar...</i>";
+        let blob=await kompresHingga(file,400);
+        let kb=(blob.size/1024).toFixed(0);
+        let r=new FileReader();r.onload=e=>kirim(e.target.result,kb+"KB");r.readAsDataURL(blob);
+    }else{sd.innerHTML="<i style='color:red;'>❌ Format tidak didukung!</i>";fi.value="";}
 };
 
 window.hapusSuratAdmin=function(idx){
@@ -963,7 +973,7 @@ function renderListSiswa(){
     if(!DATA_SISWA.length){c.innerHTML='<div style="text-align:center;color:#64748b;padding:20px;">Data Kosong</div>';return;}
     DATA_SISWA.forEach((s,idx)=>{
         html+=`<div class="siswa-item">
-            <div class="siswa-info"><span class="siswa-name">${s.no}. ${s.nama}</span><span class="siswa-details">NIS: ${s.nis} | L/P: ${s.lp}</span></div>
+            <div class="siswa-info"><span class="siswa-name">${s.absen}. ${s.nama}</span><span class="siswa-details">NIS: ${s.nis} | L/P: ${s.lp}</span></div>
             <div class="absen-options">
                 ${["H","S","I","A","T","B","D"].map(v=>`<input type="radio" id="${v.toLowerCase()}_${idx}" name="st_${idx}" value="${v}" class="radio-btn"${v==="H"?" checked":""} onchange="pilihAbsen(${idx},this.value)"><label for="${v.toLowerCase()}_${idx}" class="radio-label">${v}</label>`).join("")}
             </div>
@@ -997,12 +1007,12 @@ window.pilihAbsen=function(idx,val){
     }
 };
 
-window.handleUpload=function(idx){
+window.handleUpload=async function(idx){
     let fi=document.getElementById(`file-${idx}`);let file=fi.files[0];if(!file)return;
     let sd=document.getElementById(`upload-status-${idx}`);
     let kelas=document.getElementById("select_kelas").value||"Umum";
-    const kirim=(b64)=>{
-        sd.innerHTML="<i>⏳ Mengupload...</i>";
+    const kirim=(b64,ukuran)=>{
+        sd.innerHTML=`<i>⏳ Mengupload${ukuran?" ("+ukuran+")":""}...</i>`;
         fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify({action:"uploadBuktiSurat",fileName:file.name,fileData:b64,kelas:kelas})})
         .then(r=>r.json()).then(res=>{
             if(res.status==="success"){
@@ -1010,12 +1020,22 @@ window.handleUpload=function(idx){
                 document.getElementById(`fileid-surat-${idx}`).value=res.fileId||"";
                 sd.innerHTML=`<a href="${res.url}" target="_blank" class="btn btn-info btn-icon" style="margin-top:0;">Lihat Dokumen</a> <button onclick="hapusSuratSiswa(${idx})" class="btn btn-danger btn-icon" style="margin-top:0;">Hapus</button>`;
                 fi.style.display="none";
+                let s=DATA_SISWA[idx];
+                let tgl=document.getElementById("tgl_absen").value;
+                if(s&&tgl)fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify({action:"saveBuktiSurat",nis:s.nis,tanggal:tgl,nama:s.nama,url:res.url,fileId:res.fileId||""})}).catch(()=>{});
             }else sd.innerHTML=`<i style="color:red;">❌ Gagal: ${res.message}</i>`;
-        }).catch(()=>{sd.innerHTML="<i style='color:red;'>❌ Error koneksi!</i>";});
+        }).catch(()=>{sd.innerHTML="<i style='color:red;'>❌ Gagal koneksi. Cek internet & coba lagi.</i>";});
     };
-    if(file.type==="application/pdf"){if(file.size>5*1024*1024){sd.innerHTML="<i style='color:red;'>❌ PDF max 5MB!</i>";fi.value="";return;}let r=new FileReader();r.onload=e=>kirim(e.target.result);r.readAsDataURL(file);}
-    else if(file.type.startsWith("image/")){let r=new FileReader();r.onload=e=>kirim(e.target.result);r.readAsDataURL(file);}
-    else{sd.innerHTML="<i style='color:red;'>❌ Format tidak didukung!</i>";fi.value="";}
+    if(file.type==="application/pdf"){
+        if(file.size>5*1024*1024){sd.innerHTML="<i style='color:red;'>❌ PDF max 5MB!</i>";fi.value="";return;}
+        sd.innerHTML="<i>⏳ Memproses PDF...</i>";
+        let r=new FileReader();r.onload=e=>kirim(e.target.result,(file.size/1024).toFixed(0)+"KB");r.readAsDataURL(file);
+    }else if(file.type.startsWith("image/")){
+        sd.innerHTML="<i>⏳ Mengkompresi gambar...</i>";
+        let blob=await kompresHingga(file,400);
+        let kb=(blob.size/1024).toFixed(0);
+        let r=new FileReader();r.onload=e=>kirim(e.target.result,kb+"KB");r.readAsDataURL(blob);
+    }else{sd.innerHTML="<i style='color:red;'>❌ Format tidak didukung!</i>";fi.value="";}
 };
 
 window.hapusSuratSiswa=function(idx){
@@ -1042,7 +1062,19 @@ function loadAbsenHarian(tgl,kls){
                 if(idx!==-1){
                     let btn=document.querySelector(`input[name="st_${idx}"][value="${item.status}"]`);
                     if(btn)btn.checked=true;
-                    // Tidak ada batasan radio untuk semua role
+                    // Jika ada urlBukti dari hari lama, restore tampilan
+                    if(item.urlBukti&&["S","I","D"].includes(item.status)){
+                        let box=document.getElementById(`upload-box-${idx}`);
+                        let sd=document.getElementById(`upload-status-${idx}`);
+                        let fi=document.getElementById(`file-${idx}`);
+                        let urlEl=document.getElementById(`url-surat-${idx}`);
+                        let fidEl=document.getElementById(`fileid-surat-${idx}`);
+                        if(box)box.style.display="block";
+                        if(urlEl)urlEl.value=item.urlBukti;
+                        if(fidEl)fidEl.value=item.fileId||"";
+                        if(fi)fi.style.display="none";
+                        if(sd)sd.innerHTML=`<a href="${item.urlBukti}" target="_blank" class="btn btn-info btn-icon" style="margin-top:0;">Lihat Dokumen</a>`;
+                    }
                 }
             });
         }
@@ -1146,9 +1178,7 @@ function initAdminData(){
     fetch(URL_APPS_SCRIPT+"?action=getSettings").then(r=>r.json()).then(res=>{if(res.status==='success'){let a=0,p=0;res.data.forEach(item=>{let st=String(item.status).toUpperCase().trim();if(st==="AKTIF")a++;else if(st==="PKL")p++;});document.getElementById("dash-kelas-aktif").innerText=a;document.getElementById("dash-kelas-pkl").innerText=p;}});
 
     let tgl=getLocalDate();
-    let p=tgl.split("-");
-    let tglSheet=`${p[2]}-${p[1]}-${p[0]}`;
-    fetch(URL_APPS_SCRIPT+`?action=getStatistikHariIni&tanggal=${tglSheet}`).then(r=>r.json()).then(res=>{if(res.status==='success'){let d=res.data;document.getElementById("dash-hadir").innerText=`H:${d.H||0} S:${d.S||0} I:${d.I||0} A:${d.A||0}`;buildChart(d);}});
+    fetch(URL_APPS_SCRIPT+`?action=getStatistikHariIni&tanggal=${tgl}`).then(r=>r.json()).then(res=>{if(res.status==='success'){let d=res.data;document.getElementById("dash-hadir").innerText=`H:${d.H||0} S:${d.S||0} I:${d.I||0} A:${d.A||0}`;buildChart(d);}});
 }
 
 function updateDash(){
@@ -1166,8 +1196,10 @@ function updateDash(){
             if(k===""||k.includes("LULUS"))continue;
             if(iSt!==-1){
                 let st=String(dataSiswaAdmin[i][iSt]).toUpperCase().trim();
-                if(st==="AKTIF")totalAktif++;
+                // Hitung jika AKTIF atau kolom kosong (belum diisi)
+                if(st==="AKTIF"||st==="")totalAktif++;
             }else{
+                // Kolom Status Keaktifan tidak ada, hitung semua non-LULUS
                 totalAktif++;
             }
         }
@@ -1383,7 +1415,7 @@ function renderTableKepsek(){
     let maxP=Math.ceil(dataKepsekFull.length/limitKepsekVal)||1;if(curPageKepsek>maxP)curPageKepsek=maxP;
     document.getElementById("pageInfoKepsek").innerText=`${curPageKepsek}/${maxP}`;
     let si=(curPageKepsek-1)*limitKepsekVal;let pg=dataKepsekFull.slice(si,si+limitKepsekVal);
-    if(!pg.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;">Semua Hadir / Belum Ada Data</td></tr>`;return;}
+    if(!pg.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;">Semua Hadir / Belum Ada Data</td></tr>`;return;}
     let cnt=si+1;pg.forEach(row=>{let bc=row.status==="S"?"#f59e0b":row.status==="I"?"#3b82f6":row.status==="B"?"#1e293b":row.status==="D"?"#ec4899":"#ef4444";tbody.innerHTML+=`<tr><td>${cnt++}</td><td style="text-align:left;font-weight:bold;">${row.nama}</td><td>${row.kelas}</td><td><span style="background:${bc};color:white;padding:3px 8px;border-radius:4px;font-weight:bold;">${row.status}</span></td><td>${row.tanggal}</td></tr>`;});
 }
 
@@ -1394,13 +1426,13 @@ let rthDataFull=[],rthDataFiltered=[],rthCurrentPage=1;
 const RTH_PAGE_SIZE=10;
 function loadRekapTidakHadir(){
     let tbody=document.getElementById("tbody-rekap-tidak-hadir");
-    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:25px;"><div class="spinner" style="margin:0 auto;"></div></td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:25px;"><div class="spinner" style="margin:0 auto;"></div></td></tr>';
     document.getElementById("rth-info-total").innerText="Memuat data...";
     fetch(URL_APPS_SCRIPT+"?action=getAbsenKepsek&tanggal=ALL")
     .then(r=>r.json()).then(res=>{
         if(res.status==="success"){rthDataFull=res.data||[];rthCurrentPage=1;filterRekapTidakHadir();}
-        else tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:25px;">Gagal memuat data.</td></tr>';
-    }).catch(()=>{tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:25px;">Gagal koneksi.</td></tr>';});
+        else tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:25px;">Gagal memuat data.</td></tr>';
+    }).catch(()=>{tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:25px;">Gagal koneksi.</td></tr>';});
 }
 function filterRekapTidakHadir(){
     let fK=document.getElementById("rth-filter-kelas").value;
@@ -1422,17 +1454,22 @@ function renderRekapTidakHadir(){
     let pt=rthCurrentPage+"/"+totalPages;
     document.getElementById("rth-info-total").innerText="Total: "+total+" data ketidakhadiran";
     document.getElementById("rth-page-info").innerText=pt;document.getElementById("rth-page-info-bottom").innerText=pt;
-    if(!pageData.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#64748b;padding:25px;">Tidak ada data ditemukan.</td></tr>';return;}
+    if(!pageData.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#64748b;padding:25px;">Tidak ada data ditemukan.</td></tr>';return;}
     const BC={A:"#ef4444",S:"#f59e0b",I:"#3b82f6",B:"#1e293b",D:"#ec4899"};const LS={A:"Alpa",S:"Sakit",I:"Ijin",B:"Bolos",D:"Dispen"};
-    tbody.innerHTML=pageData.map((row,i)=>{let c=BC[row.status]||"#64748b";let l=LS[row.status]||row.status;let badge=`<span style="display:inline-block;padding:3px 9px;border-radius:5px;font-weight:bold;font-size:.82rem;color:white;background:${c};">${row.status} - ${l}</span>`;return`<tr><td>${start+i+1}</td><td style="text-align:left;font-weight:600;">${row.nama||'-'}</td><td>${row.kelas||'-'}</td><td>${badge}</td><td>${row.tanggal||'-'}</td></tr>`;}).join('');
+    tbody.innerHTML=pageData.map((row,i)=>{
+        let c=BC[row.status]||"#64748b";let l=LS[row.status]||row.status;
+        let badge=`<span style="display:inline-block;padding:3px 9px;border-radius:5px;font-weight:bold;font-size:.82rem;color:white;background:${c};">${row.status} - ${l}</span>`;
+        let buktiCell=row.urlBukti?`<a href="${row.urlBukti}" target="_blank" class="btn btn-info btn-icon" style="padding:4px 8px;font-size:.8rem;"><i class="fa-solid fa-file-lines"></i> Lihat</a>`:`<span style="color:#94a3b8;font-size:.8rem;">-</span>`;
+        return`<tr><td>${start+i+1}</td><td style="text-align:left;font-weight:600;">${row.nama||'-'}</td><td>${row.kelas||'-'}</td><td>${badge}</td><td>${row.tanggal||'-'}</td><td>${buktiCell}</td></tr>`;
+    }).join('');
 }
 function rthPrevPage(){if(rthCurrentPage>1){rthCurrentPage--;renderRekapTidakHadir();}}
 function rthNextPage(){let max=Math.ceil(rthDataFiltered.length/RTH_PAGE_SIZE)||1;if(rthCurrentPage<max){rthCurrentPage++;renderRekapTidakHadir();}}
 function exportRekapTidakHadir(){
     if(!rthDataFiltered.length)return swal("Info","Tidak ada data untuk diexport.","info");
-    let wsData=[["No","Nama Siswa","Kelas","Status","Tanggal"]];
-    rthDataFiltered.forEach((row,i)=>wsData.push([i+1,row.nama,row.kelas,row.status,row.tanggal]));
-    let ws=XLSX.utils.aoa_to_sheet(wsData);ws['!cols']=[{wch:5},{wch:30},{wch:12},{wch:10},{wch:15}];
+    let wsData=[["No","Nama Siswa","Kelas","Status","Tanggal","Link Bukti"]];
+    rthDataFiltered.forEach((row,i)=>wsData.push([i+1,row.nama,row.kelas,row.status,row.tanggal,row.urlBukti||"-"]));
+    let ws=XLSX.utils.aoa_to_sheet(wsData);ws['!cols']=[{wch:5},{wch:30},{wch:12},{wch:10},{wch:15},{wch:40}];
     let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Rekap Tidak Hadir");XLSX.writeFile(wb,"Rekap_Siswa_Tidak_Hadir.xlsx");
 }
 
@@ -1513,13 +1550,42 @@ function nextPageSurat(){let tp=Math.ceil(allDataSurat.length/PAGE_SIZE_SURAT);i
 function hapusSuratKeluar(rowIndex){swal({title:"Hapus Surat?",text:"Data dan file di Drive akan dihapus permanen!",icon:"warning",buttons:["Batal","Hapus"],dangerMode:true}).then(yes=>{if(!yes)return;loading(true,"Menghapus...");fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify({action:"deleteSuratKeluar",rowIndex:rowIndex})}).then(r=>r.json()).then(res=>{loading(false);swal(res.status==="success"?"Berhasil!":"Gagal",res.message,res.status==="success"?"success":"error");if(res.status==="success")loadRekapSurat();}).catch(()=>{loading(false);swal("Error","Gagal koneksi","error");});});}
 function toggleFormUploadSurat(){let f=document.getElementById("form-upload-surat");f.style.display=f.style.display==="none"?"block":"none";}
 function previewFileSurat(input){let pv=document.getElementById("us-preview");if(input.files&&input.files[0]){let kb=(input.files[0].size/1024).toFixed(1);pv.innerHTML='<i class="fa-solid fa-paperclip"></i> '+input.files[0].name+' ('+kb+' KB)';}}
-function kompresGambar(file,mW,q){mW=mW||1280;q=q||0.72;return new Promise(resolve=>{let img=new Image();let url=URL.createObjectURL(file);img.onload=function(){let c=document.createElement("canvas");let w=img.width,h=img.height;if(w>mW){h=Math.round(h*mW/w);w=mW;}c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);c.toBlob(blob=>resolve(blob),"image/jpeg",q);URL.revokeObjectURL(url);};img.src=url;});}
+function kompresGambar(file,mW,q){
+    mW=mW||1024;q=q||0.65;
+    return new Promise(resolve=>{
+        let img=new Image();
+        let url=URL.createObjectURL(file);
+        img.onload=function(){
+            let w=img.width,h=img.height;
+            if(w>mW){h=Math.round(h*mW/w);w=mW;}
+            let c=document.createElement("canvas");
+            c.width=w;c.height=h;
+            c.getContext("2d").drawImage(img,0,0,w,h);
+            c.toBlob(blob=>{URL.revokeObjectURL(url);resolve(blob);},"image/jpeg",q);
+        };
+        img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);}; // fallback ke file asli jika gagal
+        img.src=url;
+    });
+}
+// Kompresi bertahap: coba sampai di bawah maxKB
+async function kompresHingga(file,maxKB){
+    maxKB=maxKB||400;
+    if(!file.type.startsWith("image/"))return file;
+    let blob=await kompresGambar(file,1024,0.65);
+    if(blob.size/1024<=maxKB)return blob;
+    blob=await kompresGambar(file,800,0.5);
+    if(blob.size/1024<=maxKB)return blob;
+    blob=await kompresGambar(file,600,0.4);
+    return blob; // kirim apapun hasilnya
+}
 async function simpanUploadSurat(){
     let tgl=document.getElementById("us-tanggal").value;let noS=document.getElementById("us-nomor").value.trim();let nmS=document.getElementById("us-nama").value.trim();let jnS=document.getElementById("us-jenis").value.trim();let fi=document.getElementById("us-file");
     if(!tgl||!noS||!nmS||!jnS||!fi.files[0])return swal("Peringatan","Semua isian wajib diisi dan file harus dipilih!","warning");
+    // Konversi yyyy-MM-dd → DD-MM-YYYY
+    let p=tgl.split("-");let tglFmt=p.length===3?p[2]+"-"+p[1]+"-"+p[0]:tgl;
     loading(true,"Mengupload surat...");let file=fi.files[0];let ftu=file;
     if(file.type.startsWith("image/"))ftu=await kompresGambar(file);
-    let r=new FileReader();r.onload=function(e){let b64=e.target.result.split(",")[1];fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify({action:"uploadSuratKeluar",tanggal:tgl,nomorSurat:noS,namaSiswa:nmS,namaSurat:jnS,fileBase64:b64,mimeType:file.type.startsWith("image/")?"image/jpeg":file.type,fileName:file.name})}).then(r=>r.json()).then(res=>{loading(false);if(res.status==="success"){swal("Berhasil!","Surat berhasil disimpan.","success");toggleFormUploadSurat();loadRekapSurat();["us-tanggal","us-nomor","us-nama","us-jenis"].forEach(id=>document.getElementById(id).value="");fi.value="";document.getElementById("us-preview").innerHTML="";}else swal("Gagal",res.message||"Terjadi kesalahan","error");}).catch(()=>{loading(false);swal("Error","Gagal koneksi ke server","error");});};r.readAsDataURL(ftu);
+    let r=new FileReader();r.onload=function(e){let b64=e.target.result.split(",")[1];fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify({action:"uploadSuratKeluar",tanggal:tglFmt,nomorSurat:noS,namaSiswa:nmS,namaSurat:jnS,fileBase64:b64,mimeType:file.type.startsWith("image/")?"image/jpeg":file.type,fileName:file.name})}).then(r=>r.json()).then(res=>{loading(false);if(res.status==="success"){swal("Berhasil!","Surat berhasil disimpan.","success");toggleFormUploadSurat();loadRekapSurat();["us-tanggal","us-nomor","us-nama","us-jenis"].forEach(id=>document.getElementById(id).value="");fi.value="";document.getElementById("us-preview").innerHTML="";}else swal("Gagal",res.message||"Terjadi kesalahan","error");}).catch(()=>{loading(false);swal("Error","Gagal koneksi ke server","error");});};r.readAsDataURL(ftu);
 }
 function downloadRekapSurat(){if(!allDataSurat.length)return swal("Info","Tidak ada data.","info");let wsD=[["No","Tanggal","Nomor Surat","Nama Siswa","Nama Surat","Link"]];allDataSurat.forEach((r,i)=>wsD.push([i+1,r.tanggal,r.nomorSurat,r.namaSiswa,r.namaSurat,r.linkSurat]));let ws=XLSX.utils.aoa_to_sheet(wsD);ws['!cols']=[{wch:5},{wch:15},{wch:20},{wch:25},{wch:30},{wch:40}];let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Rekap Surat Keluar");XLSX.writeFile(wb,"Rekap_Surat_Keluar.xlsx");}
 
