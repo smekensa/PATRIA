@@ -543,7 +543,7 @@
 
 <!-- ===================== SCRIPT ===================== -->
 <script>
-const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbxmoWgzzgx3dFv5Nf__1jfhtLgO0YY93P90K6RC_l6UUi5M5Yujys7au7Hb7G4JF2qzjw/exec";
+const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbxN3k_ddBf4Kzp-9RiBLC7z5PmE799kdmDLfiNGDTAtgSnZxbq7iImMD8gFEuRU6c5Mgg/exec";
 
 // Lazy load app config
 fetch(`${URL_APPS_SCRIPT}?action=getAppConfig`).then(r=>r.json()).then(res=>{
@@ -772,7 +772,7 @@ function injectAbsensiAdmin(){
             <button id="btn-rekap-jurnal-bk" class="btn btn-purple" style="flex:1 1 0;padding:12px 5px;font-size:.9rem;" onclick="buatRekapJurnalMengajar()" disabled><i class="fa-solid fa-file-signature"></i> REKAP JURNAL MENGAJAR</button>
         </div>
         <div style="margin-top:15px;"><button class="btn btn-info" onclick="bukaHalamanStatus()"><i class="fa-solid fa-list-check"></i> CEK KETERISIAN ABSEN</button></div>
-        <div style="margin-top:15px;"><button class="btn btn-success" onclick="buatRekap()"><i class="fa-solid fa-file-excel"></i> BUAT REKAP BULANAN</button></div>`;
+        <div style="margin-top:15px;"><button class="btn btn-success" onclick="buatRekapBulananAdmin()"><i class="fa-solid fa-file-excel"></i> BUAT REKAP BULANAN</button></div>`;
 
     fetch(URL_APPS_SCRIPT+"?action=getClasses").then(r=>r.json()).then(res=>{
         let sel=document.getElementById("select_kelas_admin");
@@ -1147,6 +1147,26 @@ function buatRekap(){
     if(!kls||!tglStr||tglStr==="SHOW_ALL")return swal("Info","Pilih Kelas dan Tanggal!","warning");
     let p=tglStr.split("-");let bln=parseInt(p[1]);let thn=parseInt(p[0]);
     swal({title:"Buat Laporan?",text:`Kelas ${kls} - Bulan ${bln} - ${thn}`,icon:"info",buttons:["Batal","Buat"]}).then(y=>{if(y){document.getElementById('loading-rekap').style.display='flex';fetch(URL_APPS_SCRIPT+`?action=rekap&kelas=${encodeURIComponent(kls)}&bulan=${bln}&tahun=${thn}`).then(r=>r.json()).then(res=>{document.getElementById('loading-rekap').style.display='none';if(res.status==="success")swal("Sukses!","Cek Folder Drive.","success").then(()=>window.open(res.url,"_blank"));else swal("Gagal",res.message,"error");});}});
+}
+
+
+// Rekap bulanan dari panel admin/BK — baca select_kelas_admin & tgl_absen_admin
+function buatRekapBulananAdmin(){
+    let kls=document.getElementById("select_kelas_admin")?.value;
+    let tglStr=document.getElementById("tgl_absen_admin")?.value;
+    if(!kls||!tglStr)return swal("Info","Pilih Kelas dan Tanggal!","warning");
+    let p=tglStr.split("-");let bln=parseInt(p[1]);let thn=parseInt(p[0]);
+    if(!bln||!thn)return swal("Info","Format tanggal tidak valid.","warning");
+    swal({title:"Buat Rekap?",text:`Kelas ${kls} - Bulan ${bln} - ${thn}`,icon:"info",buttons:["Batal","Buat"]}).then(y=>{
+        if(!y)return;
+        document.getElementById('loading-rekap').style.display='flex';
+        fetch(URL_APPS_SCRIPT+`?action=rekap&kelas=${encodeURIComponent(kls)}&bulan=${bln}&tahun=${thn}`)
+        .then(r=>r.json()).then(res=>{
+            document.getElementById('loading-rekap').style.display='none';
+            if(res.status==="success")swal("Sukses!","Cek Folder Drive.","success").then(()=>window.open(res.url,"_blank"));
+            else swal("Gagal",res.message,"error");
+        }).catch(()=>{document.getElementById('loading-rekap').style.display='none';swal("Error","Gagal koneksi ke server.","error");});
+    });
 }
 
 // ============================================
