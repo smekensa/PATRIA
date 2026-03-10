@@ -116,9 +116,9 @@
 <div id="loading-overlay"><div class="spinner"></div><div style="margin-top:10px;font-weight:600;color:#64748b;" id="loading-text">Memuat...</div></div>
 <div id="loading-status"><div class="spinner"></div><div style="margin-top:10px;font-weight:600;color:#64748b;">Mengecek Status...</div></div>
 <div id="loading-rekap">
-    <div class="gear-wrapper-red"><i class="fa-solid fa-gear outer-gear-icon"></i><img src="https://drive.google.com/thumbnail?id=1IQ7wtvRfVWK7tTGmEFPb_19i7BQeYKaY&sz=s1000" class="custom-logo-center" alt="Logo"></div>
-    <div style="margin-top:20px;font-weight:bold;">Memproses...</div>
-    <div>Sistem sedang membuat file excel/rekap.</div>
+    <div class="spinner" style="width:56px;height:56px;border-width:5px;margin-bottom:20px;"></div>
+    <div style="margin-top:8px;font-weight:bold;font-size:1.1rem;color:#1e293b;">Memproses...</div>
+    <div style="color:#64748b;font-size:.9rem;margin-top:6px;">Sistem sedang membuat file excel/rekap.</div>
 </div>
 
 <button class="bk-burger-btn" id="bkBurgerBtn" onclick="toggleBkSidebar()"><i class="fa-solid fa-bars"></i></button>
@@ -127,6 +127,10 @@
 <div id="view-login">
     <div class="absensi-app">
         <div class="logo-sekolah-container"><img src="https://drive.google.com/thumbnail?id=16f0Eg36ANKThYN6_xgZUqj0Hs2TLSm3A&sz=s1000" class="logo-sekolah-img" id="img-logo-login" alt="Logo"></div>
+        <div style="margin-bottom:14px;line-height:1.5;">
+            <div style="font-size:1rem;color:#1e293b;"><strong>P</strong>usat <strong>A</strong>dministrasi <strong>T</strong>erpadu</div>
+            <div style="font-size:1rem;color:#1e293b;"><strong>R</strong>ekam <strong>I</strong>nformasi <strong>A</strong>kademik</div>
+        </div>
         <h2 style="color:var(--primary);margin-top:0;">🔐 Login Sistem</h2>
         <input type="text" id="login-nip" class="login-input" placeholder="Masukkan NIP" inputmode="numeric">
         <p style="color:#64748b;font-size:.8rem;margin:5px 0;">PIN / Password Kustom</p>
@@ -539,7 +543,7 @@
 
 <!-- ===================== SCRIPT ===================== -->
 <script>
-const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbx5zpTIX5c3v9hF4GKbBf5IikH0dxVhO_4z5DcBIP5zknvePpVUdzLbbBlLJcJZOmVV9g/exec";
+const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbxmoWgzzgx3dFv5Nf__1jfhtLgO0YY93P90K6RC_l6UUi5M5Yujys7au7Hb7G4JF2qzjw/exec";
 
 // Lazy load app config
 fetch(`${URL_APPS_SCRIPT}?action=getAppConfig`).then(r=>r.json()).then(res=>{
@@ -1123,10 +1127,13 @@ function simpanPasswordBaru(){let p=document.getElementById("passBaru").value;if
 
 function buatJurnal(){
     if(!PRESENSI_SAVED)return swal("Info","Simpan Presensi Dulu!","warning");
+    const namaGuru=(CURRENT_USER&&CURRENT_USER.nama&&CURRENT_USER.nama.trim())?CURRENT_USER.nama.trim():(document.getElementById("disp-nama-guru")||{innerText:""}).innerText.trim();
+    const nipGuru=(CURRENT_USER&&CURRENT_USER.nip&&String(CURRENT_USER.nip).trim())?String(CURRENT_USER.nip).trim():(document.getElementById("disp-nip-guru")||{innerText:""}).innerText.replace("NIP:","").trim();
+    if(!namaGuru||!nipGuru)return swal("Error","Data guru tidak ditemukan. Coba login ulang.","error");
     const mapelEl=document.getElementById("container-mapel").style.display!=="none"?document.getElementById("select_mapel"):document.getElementById("single_mapel_val");
     const materi=document.getElementById("input_materi").value;const jam=document.getElementById("input_jam").value;const uraian=document.getElementById("input_uraian").value;
     if(!jam||!uraian)return swal("Info","Lengkapi Jam dan Uraian!","warning");
-    const payload={action:"buatJurnal",nip:CURRENT_USER.nip,nama:CURRENT_USER.nama,kelas:document.getElementById("select_kelas").value,tanggal:document.getElementById("tgl_absen").value,mapel:mapelEl?mapelEl.value:"",jam,materi,uraian,absensi:DATA_SISWA.map((s,i)=>({nama:s.nama,status:document.querySelector(`input[name="st_${i}"]:checked`).value}))};
+    const payload={action:"buatJurnal",nip:nipGuru,nama:namaGuru,kelas:document.getElementById("select_kelas").value,tanggal:document.getElementById("tgl_absen").value,mapel:mapelEl?mapelEl.value:"",jam,materi,uraian,absensi:DATA_SISWA.map((s,i)=>({nama:s.nama,status:(document.querySelector(`input[name="st_${i}"]:checked`)||{value:""}).value}))};
     swal({title:"Cetak PDF?",text:"Sistem akan membuat file Jurnal",icon:"info",buttons:["Batal","Buat"]}).then(yes=>{if(yes){loading(true,"Mencetak Jurnal...");fetch(URL_APPS_SCRIPT,{method:"POST",body:JSON.stringify(payload)}).then(r=>r.json()).then(res=>{loading(false);if(res.status==="success")swal("Sukses!","Jurnal Dibuat.","success").then(()=>window.open(res.url,"_blank"));else swal("Gagal",res.message,"error");});}});
 }
 
@@ -1462,16 +1469,32 @@ function buatRekapAdmin(){
     let thn=document.getElementById("rekapAdminTahun").value;
     if(!thn)return swal("Error","Isi tahun!","warning");
 
-    // Jika semua kelas atau semua bulan → pakai endpoint rekapAllExcel
-    if(kls==="SEMUA"||bln==="SEMUA"){
-        let blnFinal=bln==="SEMUA"?"ALL":bln;
-        swal({title:"Buat Rekap?",text:`Semua kelas / bulan dipilih. Proses ini membutuhkan waktu lebih lama.`,icon:"info",buttons:["Batal","Proses"]}).then(yes=>{
+    if(kls==="SEMUA"&&bln!=="SEMUA"){
+        // Semua kelas, bulan tertentu → 1 file pakai template per kelas
+        swal({title:"Buat Rekap?",text:`Semua kelas bulan ${bln}/${thn}. Satu file per kelas dengan template rekap bulanan.`,icon:"info",buttons:["Batal","Proses"]}).then(yes=>{
             if(!yes)return;
             document.getElementById('loading-rekap').style.display='flex';
-            fetch(`${URL_APPS_SCRIPT}?action=rekapAllExcel&bulan=${blnFinal}&tahun=${thn}`)
+            fetch(`${URL_APPS_SCRIPT}?action=rekapSemuaKelasTemplate&bulan=${bln}&tahun=${thn}`)
+            .then(r=>r.json()).then(res=>{document.getElementById('loading-rekap').style.display='none';if(res.status==="success")swal("Sukses!","Rekap semua kelas siap. File tersimpan di Drive.","success").then(()=>window.open(res.folderUrl||res.url,"_blank"));else swal("Gagal",res.message,"error");});
+        });
+    } else if(kls==="SEMUA"&&bln==="SEMUA"){
+        // Semua kelas, semua bulan → rekapAllExcel (ringkasan)
+        swal({title:"Buat Rekap?",text:`Semua kelas semua bulan ${thn}. Format ringkasan per bulan.`,icon:"info",buttons:["Batal","Proses"]}).then(yes=>{
+            if(!yes)return;
+            document.getElementById('loading-rekap').style.display='flex';
+            fetch(`${URL_APPS_SCRIPT}?action=rekapAllExcel&bulan=ALL&tahun=${thn}`)
             .then(r=>r.json()).then(res=>{document.getElementById('loading-rekap').style.display='none';if(res.status==="success")swal("Sukses!","File rekap siap.","success").then(()=>window.open(res.url,"_blank"));else swal("Gagal",res.message,"error");});
         });
-    }else{
+    } else if(kls!=="SEMUA"&&bln==="SEMUA"){
+        // 1 kelas, semua bulan → rekapAllExcel filter kelas
+        swal({title:"Buat Rekap?",text:`Kelas ${kls} semua bulan ${thn}.`,icon:"info",buttons:["Batal","Proses"]}).then(yes=>{
+            if(!yes)return;
+            document.getElementById('loading-rekap').style.display='flex';
+            fetch(`${URL_APPS_SCRIPT}?action=rekapAllExcel&bulan=ALL&tahun=${thn}&kelas=${encodeURIComponent(kls)}`)
+            .then(r=>r.json()).then(res=>{document.getElementById('loading-rekap').style.display='none';if(res.status==="success")swal("Sukses!","File rekap siap.","success").then(()=>window.open(res.url,"_blank"));else swal("Gagal",res.message,"error");});
+        });
+    } else {
+        // 1 kelas, 1 bulan → template normal
         swal({title:"Cetak Rekap?",text:`Kelas ${kls} - Bulan ${bln} - ${thn}`,icon:"info",buttons:["Batal","Buat"]}).then(yes=>{
             if(!yes)return;
             document.getElementById('loading-rekap').style.display='flex';
