@@ -5,6 +5,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Jurnal & Absensi</title>
@@ -265,7 +266,7 @@
                 <li id="menu-generate-surat" onclick="switchAdminPanel('persuratan',this)"><i class="fa-solid fa-envelope"></i><span class="menu-text">Generate Surat</span></li>
                 <li id="menu-rekap-surat" onclick="switchAdminPanel('panel-rekap-surat',this)"><i class="fa-solid fa-envelope-open-text"></i><span class="menu-text">Rekap Surat</span></li>
                 <li id="menu-guru-jurnal" onclick="switchAdminPanel('panel-guru-jurnal',this)"><i class="fa-solid fa-chalkboard-user"></i><span class="menu-text">Data Guru &amp; Jurnal</span></li>
-                <li id="menu-rekap-absen" onclick="switchAdminPanel('panel-rekap-absen',this);if(document.getElementById('rekap-kepsek-view').style.display!=='none')loadRekapSiswaAktif()"><i class="fa-solid fa-file-excel"></i><span class="menu-text">Rekap Absen Siswa</span></li>
+                <li id="menu-rekap-absen" onclick="switchAdminPanel('panel-rekap-absen',this);if(document.getElementById('rekap-kepsek-view').style.display!=='none')loadRekapSiswaAktif()"><i class="fa-solid fa-file-excel"></i><span class="menu-text" id="menu-rekap-absen-text">Rekap Absen Siswa</span></li>
                 <li id="menu-rekap-kelas" onclick="switchAdminPanel('panel-rekap-kelas',this)"><i class="fa-solid fa-layer-group"></i><span class="menu-text">Rekap Absen Kelas</span></li>
                 <li id="menu-rekap-tidak-hadir" onclick="switchAdminPanel('panel-rekap-tidak-hadir',this);loadRekapTidakHadir()"><i class="fa-solid fa-user-xmark"></i><span class="menu-text">Rekap Tidak Hadir</span></li>
                 <li id="menu-tanggal" onclick="switchAdminPanel('panel-tanggal',this);loadCutOffToForm()"><i class="fa-solid fa-calendar"></i><span class="menu-text">Tanggal &amp; Backup</span></li>
@@ -710,6 +711,7 @@ function showApp(){
         }else if(role==="kepala sekolah"){
             IS_BK_MODE=false;
             [mGuru,mCek,mRkS,mRTH,mRekap,mRekapKelas].forEach(m=>{if(m)m.style.display="flex";});
+            document.getElementById("menu-rekap-absen-text").textContent="Rekap Siswa Aktif";
             document.getElementById("rekap-kepsek-view").style.display="block";
             mDash.click();
             setTimeout(()=>loadRekapSiswaAktif(),800);
@@ -1592,19 +1594,32 @@ function loadRekapSiswaAktif(){
 }
 
 function parseCutOff(str){
-    // str bisa yyyy-MM-dd (dari input[type=date]) atau DD-MM-YYYY
     if(!str)return null;
-    let p=str.split("-");
-    if(p.length!==3)return null;
-    if(p[0].length===4) return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
-    return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
+    // Jika sudah Date object
+    if(str instanceof Date) return str;
+    str = String(str).trim();
+    // Format yyyy-MM-dd (dari input[type=date])
+    if(/^\d{4}-\d{2}-\d{2}$/.test(str)){
+        let p=str.split("-");
+        return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+    }
+    // Format DD-MM-YYYY
+    if(/^\d{2}-\d{2}-\d{4}$/.test(str)){
+        let p=str.split("-");
+        return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
+    }
+    // Fallback: coba parse apapun (termasuk "Sat Mar 07 2026 ...")
+    let d=new Date(str);
+    if(!isNaN(d.getTime())) return d;
+    return null;
 }
 
 function formatCutOffDisplay(str){
     let d=parseCutOff(str);
     if(!d||isNaN(d))return str||"";
+    const H=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
     const B=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-    return String(d.getDate()).padStart(2,"0")+" "+B[d.getMonth()]+" "+d.getFullYear();
+    return H[d.getDay()]+", "+String(d.getDate()).padStart(2,"0")+" "+B[d.getMonth()]+" "+d.getFullYear();
 }
 
 function getCutOffBulanTahun(str){
@@ -1635,8 +1650,8 @@ function renderRekapSiswaAktif(){
     });
 
     let bThn = getCutOffBulanTahun(cutOffDapodikStr);
-    let tpStr = bThn.bulanNama ? "TAHUN PELAJARAN "+bThn.tahun+" "+(parseInt(bThn.tahun)+1) : "";
     let bulanStr = bThn.bulanNama ? bThn.bulanNama.toUpperCase() : "";
+    let tahunStr = bThn.tahun ? String(bThn.tahun) : "";
     let cutoffDisplay = formatCutOffDisplay(cutOffDapodikStr);
     let namaSekolah = namaSekolahGlobal || "SEKOLAH";
 
@@ -1652,7 +1667,7 @@ function renderRekapSiswaAktif(){
     <div id="rekap-print-area" style="font-family:Arial,sans-serif;font-size:12px;">
         <div style="text-align:center;margin-bottom:4px;">
             <div style="font-weight:700;font-size:14px;">REKAP JUMLAH SISWA AKTIF ${namaSekolah}</div>
-            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} ${tpStr}</div>
+            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} ${tahunStr}</div>
         </div>
         <div style="font-size:11px;margin-bottom:8px;color:#444;">CutOff Dapodik ${cutoffDisplay}</div>
         <div style="overflow-x:auto;">
@@ -1677,7 +1692,7 @@ function renderRekapSiswaAktif(){
     <div id="rekap-print-area" style="font-family:Arial,sans-serif;font-size:12px;">
         <div style="text-align:center;margin-bottom:4px;">
             <div style="font-weight:700;font-size:14px;">REKAP JUMLAH SISWA AKTIF ${namaSekolah}</div>
-            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} ${tpStr}</div>
+            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} ${tahunStr}</div>
         </div>
         <div style="font-size:11px;margin-bottom:8px;color:#444;">CutOff Dapodik ${cutoffDisplay}</div>
         <div style="overflow-x:auto;">
@@ -1729,20 +1744,25 @@ function renderRekapSiswaAktif(){
     });
     html+=`</tr></tbody></table></div>`;
 
-    // Grand total box
+    // Grand total — tengah bawah, dibungkus avoid page-break
     let grandL=dataRekapSiswaAktif.reduce((s,r)=>s+r.L,0);
     let grandP=dataRekapSiswaAktif.reduce((s,r)=>s+r.P,0);
     let grandT=grandL+grandP;
-    html+=`<div style="display:flex;justify-content:flex-end;margin-top:16px;">
-        <table style="border-collapse:collapse;font-size:12px;font-weight:700;">
-            <tr><td style="border:2px solid #333;padding:6px 16px;background:#f0f4ff;">JUMLAH TOTAL</td>
-                <td style="border:2px solid #333;padding:6px 12px;min-width:70px;">L</td>
-                <td style="border:2px solid #333;padding:6px 12px;background:#c9daf8;font-size:14px;">${grandL}</td></tr>
-            <tr><td style="border:2px solid #333;padding:6px 16px;background:#f0f4ff;"></td>
-                <td style="border:2px solid #333;padding:6px 12px;">P</td>
-                <td style="border:2px solid #333;padding:6px 12px;background:#c9daf8;font-size:14px;">${grandP}</td></tr>
-            <tr><td style="border:2px solid #333;padding:6px 16px;background:#fff3cd;font-weight:800;">TOTAL</td>
-                <td colspan="2" style="border:2px solid #333;padding:6px 12px;background:#ffe066;font-size:16px;text-align:center;font-weight:800;">${grandT}</td></tr>
+    html+=`<div style="display:flex;justify-content:center;margin-top:20px;page-break-inside:avoid;">
+        <table style="border-collapse:collapse;font-size:13px;font-weight:700;">
+            <tr>
+                <td rowspan="3" style="border:2px solid #333;padding:8px 20px;background:#c9daf8;font-size:13px;font-weight:800;text-align:center;vertical-align:middle;">JUMLAH TOTAL</td>
+                <td style="border:2px solid #333;padding:6px 14px;background:#dae8fc;text-align:center;">L</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#dae8fc;font-size:14px;text-align:center;">${grandL}</td>
+            </tr>
+            <tr>
+                <td style="border:2px solid #333;padding:6px 14px;background:#dae8fc;text-align:center;">P</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#dae8fc;font-size:14px;text-align:center;">${grandP}</td>
+            </tr>
+            <tr>
+                <td style="border:2px solid #333;padding:6px 14px;background:#ffe066;font-weight:800;text-align:center;">TOTAL</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#ffe066;font-size:16px;text-align:center;font-weight:900;">${grandT}</td>
+            </tr>
         </table>
     </div>
     </div>`;
@@ -1755,23 +1775,34 @@ function downloadRekapSiswaPDF(){
     if(!el)return swal("Info","Muat data terlebih dahulu!","warning");
     let bThn=getCutOffBulanTahun(cutOffDapodikStr);
     let fn="Rekap_Siswa_Aktif_"+(bThn.bulanNama||"")+"_"+(bThn.tahun||"")+".pdf";
-    let opt={margin:8,filename:fn,image:{type:"jpeg",quality:0.98},html2canvas:{scale:2},jsPDF:{unit:"mm",format:"a4",orientation:"landscape"}};
+    let opt={
+        margin:[8,6,8,6],
+        filename:fn,
+        image:{type:"jpeg",quality:0.98},
+        html2canvas:{scale:2, useCORS:true, allowTaint:true, logging:false},
+        jsPDF:{unit:"mm",format:"a4",orientation:"landscape"},
+        pagebreak:{mode:["avoid-all","css"]}
+    };
     if(typeof html2pdf!=="undefined"){
-        html2pdf().set(opt).from(el).save();
+        loading(true,"Membuat PDF...");
+        html2pdf().set(opt).from(el).save().then(()=>loading(false)).catch(()=>loading(false));
     } else {
         window.print();
     }
 }
 
-function downloadRekapSiswaExcel(){
+async function downloadRekapSiswaExcel(){
     if(!dataRekapSiswaAktif.length)return swal("Info","Muat data terlebih dahulu!","warning");
+    if(typeof ExcelJS==="undefined")return swal("Error","Library ExcelJS belum siap, coba lagi.","error");
+
+    loading(true,"Membuat Excel...");
+
     let bThn=getCutOffBulanTahun(cutOffDapodikStr);
     let bulanStr=bThn.bulanNama?bThn.bulanNama.toUpperCase():"";
-    let tpStr=bThn.bulanNama?"TAHUN PELAJARAN "+bThn.tahun+" "+(parseInt(bThn.tahun)+1):"";
+    let tahunStr=bThn.tahun?String(bThn.tahun):"";
     let cutoffDisplay=formatCutOffDisplay(cutOffDapodikStr);
     let namaSekolah=namaSekolahGlobal||"SEKOLAH";
 
-    // Pisah per tingkat
     let tingkat={"X":[],"XI":[],"XII":[]};
     dataRekapSiswaAktif.forEach(r=>{
         if(/^XII\b/.test(r.kelas)) tingkat["XII"].push(r);
@@ -1780,59 +1811,172 @@ function downloadRekapSiswaExcel(){
     });
     let aktifT=["X","XI","XII"].filter(t=>tingkat[t].length>0);
     let maxRows=Math.max(...aktifT.map(t=>tingkat[t].length));
+    let nCol=aktifT.length*5; // 5 kolom per tingkat
 
-    let wb=XLSX.utils.book_new();
-    let ws_data=[];
+    // Warna (ARGB)
+    const C_HEADER1 = "FFC9DAF8"; // biru header grup
+    const C_HEADER2 = "FFDAE8FC"; // biru header kolom
+    const C_ROWALT  = "FFF0F4FF"; // baris ganjil
+    const C_TOTAL   = "FFB7CDF7"; // baris jumlah total per tingkat
+    const C_GT_BLUE = "FFDAE8FC"; // grand total L/P
+    const C_GT_YEL  = "FFFFE066"; // grand total TOTAL
+    const C_TITLE   = "FF1E3A5F"; // background judul (opsional, skip untuk isi putih)
+    const BORDER = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+    const BORDER_MED = {top:{style:"medium"},left:{style:"medium"},bottom:{style:"medium"},right:{style:"medium"}};
 
-    // Baris judul
-    ws_data.push(["REKAP JUMLAH SISWA AKTIF "+namaSekolah]);
-    ws_data.push(["BULAN "+bulanStr+" "+tpStr]);
-    ws_data.push(["CutOff Dapodik "+cutoffDisplay]);
-    ws_data.push([]);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Rekap Siswa Aktif");
 
-    // Header grup
-    let hGrup=[];
-    aktifT.forEach(t=>{hGrup.push("KELAS "+t,"","","","");});
-    ws_data.push(hGrup);
+    // Lebar kolom: per tingkat 5 col: NO=5, KELAS=16, L=6, P=6, JUMLAH=9
+    let colWidths=[];
+    aktifT.forEach(()=>colWidths.push(5,16,6,6,9));
+    ws.columns = colWidths.map(w=>({width:w}));
 
-    // Header kolom
-    let hKol=[];
-    aktifT.forEach(()=>{hKol.push("NO","KELAS","L","P","JUMLAH");});
-    ws_data.push(hKol);
+    // --- Baris 1: Judul ---
+    ws.addRow(["REKAP JUMLAH SISWA AKTIF "+namaSekolah]);
+    ws.mergeCells(1,1,1,nCol);
+    let r1=ws.getRow(1);
+    r1.height=18;
+    r1.getCell(1).font={bold:true,size:13};
+    r1.getCell(1).alignment={horizontal:"center",vertical:"middle"};
 
-    // Data baris
-    for(let i=0;i<maxRows;i++){
-        let row=[];
-        aktifT.forEach(t=>{
-            let r=tingkat[t][i];
-            if(r) row.push(i+1,r.kelas,r.L,r.P,r.jumlah);
-            else row.push("","","","","");
+    // --- Baris 2: Bulan ---
+    ws.addRow(["BULAN "+bulanStr+" "+tahunStr]);
+    ws.mergeCells(2,1,2,nCol);
+    let r2=ws.getRow(2);
+    r2.height=16;
+    r2.getCell(1).font={bold:true,size:12};
+    r2.getCell(1).alignment={horizontal:"center",vertical:"middle"};
+
+    // --- Baris 3: CutOff ---
+    ws.addRow(["CutOff Dapodik "+cutoffDisplay]);
+    ws.mergeCells(3,1,3,nCol);
+    let r3=ws.getRow(3);
+    r3.getCell(1).font={italic:true,size:10,color:{argb:"FF444444"}};
+    r3.getCell(1).alignment={horizontal:"left"};
+
+    // --- Baris 4: Kosong ---
+    ws.addRow([]);
+
+    // --- Baris 5: Header Grup (KELAS X / XI / XII) ---
+    let rHGrup=ws.addRow([]);
+    rHGrup.height=16;
+    aktifT.forEach((t,i)=>{
+        let startCol=i*5+1;
+        let cell=rHGrup.getCell(startCol);
+        cell.value="KELAS "+t;
+        cell.font={bold:true,size:11};
+        cell.alignment={horizontal:"center",vertical:"middle"};
+        cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_HEADER1}};
+        cell.border=BORDER;
+        ws.mergeCells(5,startCol,5,startCol+4);
+        // Apply fill to merged cells
+        for(let c=startCol;c<=startCol+4;c++){
+            let mc=rHGrup.getCell(c);
+            mc.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_HEADER1}};
+            mc.border=BORDER;
+        }
+    });
+
+    // --- Baris 6: Header Kolom ---
+    let rHKol=ws.addRow([]);
+    rHKol.height=15;
+    aktifT.forEach((_,i)=>{
+        let startCol=i*5+1;
+        ["NO","KELAS","L","P","JUMLAH"].forEach((h,j)=>{
+            let cell=rHKol.getCell(startCol+j);
+            cell.value=h;
+            cell.font={bold:true,size:10};
+            cell.alignment={horizontal:"center",vertical:"middle"};
+            cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_HEADER2}};
+            cell.border=BORDER;
         });
-        ws_data.push(row);
+    });
+
+    // --- Data baris ---
+    for(let i=0;i<maxRows;i++){
+        let rData=ws.addRow([]);
+        rData.height=14;
+        let isAlt=(i%2===1);
+        aktifT.forEach((t,ti)=>{
+            let startCol=ti*5+1;
+            let r=tingkat[t][i];
+            let vals=r?[i+1,r.kelas,r.L,r.P,r.jumlah]:["","","","",""];
+            vals.forEach((v,j)=>{
+                let cell=rData.getCell(startCol+j);
+                cell.value=v;
+                cell.alignment={horizontal:"center",vertical:"middle"};
+                if(j===1) cell.alignment={horizontal:"left",vertical:"middle"};
+                if(j===1&&r) cell.font={bold:true,size:10};
+                if(isAlt) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_ROWALT}};
+                cell.border=BORDER;
+            });
+        });
     }
 
-    // Total per tingkat
-    let totRow=[];
-    aktifT.forEach(t=>{
+    // --- Baris Jumlah Total per tingkat ---
+    let rTot=ws.addRow([]);
+    rTot.height=15;
+    aktifT.forEach((t,i)=>{
+        let startCol=i*5+1;
         let totL=tingkat[t].reduce((s,r)=>s+r.L,0);
         let totP=tingkat[t].reduce((s,r)=>s+r.P,0);
-        totRow.push("JUMLAH TOTAL","",totL,totP,totL+totP);
+        let totJ=totL+totP;
+        ["JUMLAH TOTAL","",totL,totP,totJ].forEach((v,j)=>{
+            let cell=rTot.getCell(startCol+j);
+            cell.value=v;
+            cell.font={bold:true,size:10};
+            cell.alignment={horizontal:"center",vertical:"middle"};
+            cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_TOTAL}};
+            cell.border=BORDER;
+        });
+        ws.mergeCells(ws.rowCount,startCol,ws.rowCount,startCol+1);
     });
-    ws_data.push(totRow);
-    ws_data.push([]);
 
-    // Grand total
-    let gL=dataRekapSiswaAktif.reduce((s,r)=>s+r.L,0);
-    let gP=dataRekapSiswaAktif.reduce((s,r)=>s+r.P,0);
-    ws_data.push(["JUMLAH TOTAL","L",gL]);
-    ws_data.push(["","P",gP]);
-    ws_data.push(["TOTAL","",gL+gP]);
+    // --- Baris Kosong ---
+    ws.addRow([]);
 
-    let ws=XLSX.utils.aoa_to_sheet(ws_data);
-    ws["!cols"]=[];
-    aktifT.forEach(()=>{ws["!cols"].push({wch:5},{wch:16},{wch:6},{wch:6},{wch:8});});
-    XLSX.utils.book_append_sheet(wb,ws,"Rekap Siswa Aktif");
-    XLSX.writeFile(wb,"Rekap_Siswa_Aktif_"+(bThn.bulanNama||"")+"_"+(bThn.tahun||"")+".xlsx");
+    // --- Grand Total (tengah) ---
+    // Hitung kolom tengah
+    let midStart=Math.floor(nCol/2)-2;
+    if(midStart<1)midStart=1;
+    let grandL=dataRekapSiswaAktif.reduce((s,r)=>s+r.L,0);
+    let grandP=dataRekapSiswaAktif.reduce((s,r)=>s+r.P,0);
+    let grandT=grandL+grandP;
+
+    // Baris label JUMLAH TOTAL (merged vertikal = tidak bisa di ExcelJS, buat 3 baris)
+    let gtRow1=ws.addRow([]);gtRow1.height=16;
+    let gtRow2=ws.addRow([]);gtRow2.height=16;
+    let gtRow3=ws.addRow([]);gtRow3.height=18;
+    let gR1=ws.rowCount-2, gR2=ws.rowCount-1, gR3=ws.rowCount;
+
+    // Col: midStart=label, midStart+1=L/P/TOTAL, midStart+2=nilai
+    [[gR1,"JUMLAH TOTAL","L",grandL,C_GT_BLUE],
+     [gR2,"","P",grandP,C_GT_BLUE],
+     [gR3,"TOTAL","",grandT,C_GT_YEL]].forEach(([rn,lab,lp,val,clr])=>{
+        let row=ws.getRow(rn);
+        let c1=row.getCell(midStart);
+        let c2=row.getCell(midStart+1);
+        let c3=row.getCell(midStart+2);
+        c1.value=lab||"";c1.font={bold:true,size:11};c1.alignment={horizontal:"center",vertical:"middle"};
+        c1.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_GT_BLUE}};c1.border=BORDER_MED;
+        c2.value=lp;c2.font={bold:true,size:11};c2.alignment={horizontal:"center",vertical:"middle"};
+        c2.fill={type:"pattern",pattern:"solid",fgColor:{argb:clr}};c2.border=BORDER_MED;
+        c3.value=val;c3.font={bold:true,size:rn===gR3?14:12};c3.alignment={horizontal:"center",vertical:"middle"};
+        c3.fill={type:"pattern",pattern:"solid",fgColor:{argb:clr}};c3.border=BORDER_MED;
+    });
+    // Merge label JUMLAH TOTAL vertikal
+    ws.mergeCells(gR1,midStart,gR2,midStart);
+
+    // Generate file
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download="Rekap_Siswa_Aktif_"+(bulanStr||"")+"_"+(tahunStr||"")+".xlsx";
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},1000);
+    loading(false);
 }
 
 function simpanCutOffDapodik(){
