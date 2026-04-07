@@ -268,7 +268,7 @@
                 <li id="menu-guru-jurnal" onclick="switchAdminPanel('panel-guru-jurnal',this)"><i class="fa-solid fa-chalkboard-user"></i><span class="menu-text">Data Guru &amp; Jurnal</span></li>
                 <li id="menu-rekap-absen" onclick="switchAdminPanel('panel-rekap-absen',this);if(document.getElementById('rekap-kepsek-view').style.display!=='none')loadRekapSiswaAktif()"><i class="fa-solid fa-file-excel"></i><span class="menu-text" id="menu-rekap-absen-text">Rekap Absen Siswa</span></li>
                 <li id="menu-rekap-dapodik" onclick="switchAdminPanel('panel-rekap-dapodik',this);loadRekapDapodik()"><i class="fa-solid fa-users-between-lines"></i><span class="menu-text">Rekap Dapodik</span></li>
-                <li id="menu-rekap-dapodik" onclick="switchAdminPanel('panel-rekap-dapodik',this);loadRekapDapodik()"><i class="fa-solid fa-users-between-lines"></i><span class="menu-text">Rekap Dapodik</span></li>
+                <li id="menu-rekap-dapodik2" onclick="switchAdminPanel('panel-rekap-dapodik2',this);loadRekapDapodik2()"><i class="fa-solid fa-table-cells"></i><span class="menu-text">Rekap Siswa Aktif</span></li>
                 <li id="menu-rekap-kelas" onclick="switchAdminPanel('panel-rekap-kelas',this)"><i class="fa-solid fa-layer-group"></i><span class="menu-text">Rekap Absen Kelas</span></li>
                 <li id="menu-rekap-tidak-hadir" onclick="switchAdminPanel('panel-rekap-tidak-hadir',this);loadRekapTidakHadir()"><i class="fa-solid fa-user-xmark"></i><span class="menu-text">Rekap Tidak Hadir</span></li>
                 <li id="menu-tanggal" onclick="switchAdminPanel('panel-tanggal',this);loadCutOffToForm()"><i class="fa-solid fa-calendar"></i><span class="menu-text">Tanggal &amp; Backup</span></li>
@@ -472,9 +472,10 @@
                             <div>
                                 <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:4px;">Bulan</label>
                                 <select id="rasBulan" class="form-control">
+                                    <option value="SEMUA">-- Semua Bulan --</option>
                                     <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
                                     <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
-                                    <option value="7" selected>Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                                    <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
                                     <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
                                 </select>
                             </div>
@@ -514,6 +515,19 @@
                         <button class="btn btn-info btn-icon" onclick="loadRekapDapodik()"><i class="fa-solid fa-rotate-right"></i> Muat Ulang</button>
                     </div>
                     <div id="rekap-dapodik-container">
+                        <p style="color:#94a3b8;text-align:center;padding:30px;">Klik Muat Ulang untuk memuat data.</p>
+                    </div>
+                </div>
+
+                <!-- REKAP SISWA AKTIF Admin (Tampilan Multi-Kolom per Tingkat) -->
+                <div id="panel-rekap-dapodik2" class="admin-panel" style="display:none;">
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center;">
+                        <h3 style="margin:0;flex:1;font-size:1rem;"><i class="fa-solid fa-table-cells" style="color:#1e40af;"></i> Rekap Jumlah Siswa Aktif (Per Tingkat)</h3>
+                        <button class="btn btn-danger btn-icon" onclick="downloadRekapDapodik2PDF()"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
+                        <button class="btn btn-success btn-icon" onclick="downloadRekapDapodik2Excel()"><i class="fa-solid fa-file-excel"></i> Download Excel</button>
+                        <button class="btn btn-info btn-icon" onclick="loadRekapDapodik2()"><i class="fa-solid fa-rotate-right"></i> Muat Ulang</button>
+                    </div>
+                    <div id="rekap-dapodik2-container">
                         <p style="color:#94a3b8;text-align:center;padding:30px;">Klik Muat Ulang untuk memuat data.</p>
                     </div>
                 </div>
@@ -623,7 +637,7 @@
 
 <!-- ===================== SCRIPT ===================== -->
 <script>
-const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbwIhcfLGmI2wyd6HW8AZ7Ojr7apxQDqll1FdiBk-3lzGXC-p8SXuymQ2o7A9_OR8ZZk1g/exec";
+const URL_APPS_SCRIPT="https://script.google.com/macros/s/AKfycbyqf9HsUO6n3fuij_syQBXrjn-KG-phsWYU_QmofoDaV-LiTa6uDWJCKbDImGPk7KmlyA/exec";
 
 // Lazy load app config
 fetch(`${URL_APPS_SCRIPT}?action=getAppConfig`).then(r=>r.json()).then(res=>{
@@ -1651,7 +1665,7 @@ function renderRekapDapodik(){
     if(!data||!data.length){container.innerHTML='<p style="color:#94a3b8;text-align:center;padding:30px;">Tidak ada data siswa aktif.</p>';return;}
     let totalL=0,totalP=0,totalAll=0;
     data.forEach(r=>{totalL+=r.L;totalP+=r.P;totalAll+=r.jumlah;});
-    let h=`<div id="rekap-dapodik-printable">
+    let h=`<div id="rekap-dapodik-printable" style="font-family:Arial,sans-serif;font-size:12px;">
     <div style="text-align:center;padding:10px 10px 6px;border-bottom:2px solid #1e3a5f;margin-bottom:10px;">
         <div style="font-weight:700;font-size:14px;">REKAP JUMLAH SISWA AKTIF ${namaSekolah}</div>
         <div style="font-size:11px;margin-top:4px;color:#444;">CutOff Dapodik ${cutoffDisplay}</div>
@@ -1678,14 +1692,256 @@ function renderRekapDapodik(){
         </tr>`;
     });
     h+=`<tr style="background:#e2e8f0;font-weight:700;">
-        <td colspan="2" style="padding:7px 10px;border:1px solid #cbd5e1;text-align:center;">TOTAL</td>
+        <td colspan="2" style="padding:7px 10px;border:1px solid #cbd5e1;text-align:center;">JUMLAH TOTAL</td>
         <td style="padding:7px 10px;border:1px solid #cbd5e1;text-align:center;">${totalL}</td>
         <td style="padding:7px 10px;border:1px solid #cbd5e1;text-align:center;">${totalP}</td>
         <td style="padding:7px 10px;border:1px solid #cbd5e1;text-align:center;">${totalAll}</td>
     </tr>
         </tbody>
-    </table></div></div>`;
+    </table></div>
+    <div style="display:flex;justify-content:center;margin-top:16px;">
+        <table style="border-collapse:collapse;font-size:13px;font-weight:700;">
+            <tr>
+                <td rowspan="3" style="border:2px solid #333;padding:8px 20px;background:#c9daf8;font-size:13px;font-weight:800;text-align:center;vertical-align:middle;">JUMLAH TOTAL</td>
+                <td style="border:2px solid #333;padding:6px 14px;background:#dae8fc;text-align:center;">L</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#dae8fc;font-size:14px;text-align:center;">${totalL}</td>
+            </tr>
+            <tr>
+                <td style="border:2px solid #333;padding:6px 14px;background:#dae8fc;text-align:center;">P</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#dae8fc;font-size:14px;text-align:center;">${totalP}</td>
+            </tr>
+            <tr>
+                <td style="border:2px solid #333;padding:6px 14px;background:#ffe066;font-weight:800;text-align:center;">TOTAL</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#ffe066;font-size:16px;text-align:center;font-weight:900;">${totalAll}</td>
+            </tr>
+        </table>
+    </div>
+    </div>`;
     container.innerHTML=h;
+}
+
+// ============================================
+// REKAP DAPODIK 2 - TAMPILAN MULTI-KOLOM PER TINGKAT (sama seperti kepsek)
+// ============================================
+let dataRekapDapodik2=[], cutOffDapodik2Str="", namaSekolahDapodik2="";
+
+function loadRekapDapodik2(){
+    let container=document.getElementById("rekap-dapodik2-container");
+    container.innerHTML='<p style="text-align:center;padding:30px;"><div class="spinner" style="margin:0 auto;"></div></p>';
+    Promise.all([
+        fetch(URL_APPS_SCRIPT+"?action=getCutOffDapodik").then(r=>r.json()),
+        fetch(URL_APPS_SCRIPT+"?action=getRekapSiswaAktif").then(r=>r.json())
+    ]).then(([cfg, rekap])=>{
+        if(cfg.status==="success"){
+            cutOffDapodik2Str = cfg.cutoff||"";
+            namaSekolahDapodik2 = cfg.namaSekolah||"";
+        }
+        if(rekap.status!=="success"){
+            container.innerHTML='<p style="color:red;text-align:center;">'+rekap.message+'</p>';
+            return;
+        }
+        dataRekapDapodik2 = rekap.data||[];
+        renderRekapDapodik2();
+    }).catch(()=>{
+        container.innerHTML='<p style="color:red;text-align:center;">Koneksi gagal.</p>';
+    });
+}
+
+function renderRekapDapodik2(){
+    let container=document.getElementById("rekap-dapodik2-container");
+    if(!dataRekapDapodik2.length){
+        container.innerHTML='<p style="color:#94a3b8;text-align:center;padding:30px;">Tidak ada data siswa aktif.</p>';
+        return;
+    }
+    let tingkat={"X":[],"XI":[],"XII":[]};
+    dataRekapDapodik2.forEach(r=>{
+        if(/^XII\b/.test(r.kelas)) tingkat["XII"].push(r);
+        else if(/^XI\b/.test(r.kelas)) tingkat["XI"].push(r);
+        else if(/^X\b/.test(r.kelas)) tingkat["X"].push(r);
+        else { if(!tingkat["Lain"]) tingkat["Lain"]=[]; tingkat["Lain"].push(r); }
+    });
+    let bThn=getCutOffBulanTahun(cutOffDapodik2Str);
+    let bulanStr=bThn.bulanNama?bThn.bulanNama.toUpperCase():"";
+    let tahunStr=bThn.tahun?String(bThn.tahun):"";
+    let cutoffDisplay=formatCutOffDisplay(cutOffDapodik2Str);
+    let namaSekolah=namaSekolahDapodik2||"SEKOLAH";
+    let aktifTingkat=["X","XI","XII"].filter(t=>tingkat[t]&&tingkat[t].length>0);
+    if(tingkat["Lain"]&&tingkat["Lain"].length>0) aktifTingkat.push("Lain");
+    let maxRows=Math.max(...aktifTingkat.map(t=>tingkat[t].length));
+    let html=`<div id="rekap-dapodik2-printable" style="font-family:Arial,sans-serif;font-size:12px;">
+        <div style="text-align:center;margin-bottom:4px;">
+            <div style="font-weight:700;font-size:14px;">REKAP JUMLAH SISWA AKTIF ${namaSekolah}</div>
+            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} TAHUN PELAJARAN ${tahunStr}</div>
+        </div>
+        <div style="font-size:11px;margin-bottom:8px;color:#444;">CutOff Dapodik ${cutoffDisplay}</div>
+        <div style="overflow-x:auto;">
+        <table id="tbl-rekap-dapodik2" style="border-collapse:collapse;font-size:11px;">
+        <thead>
+        <tr style="background:#c9daf8;font-weight:700;text-align:center;">`;
+    aktifTingkat.forEach(t=>{
+        html+=`<th colspan="5" style="border:1px solid #999;padding:5px 8px;">KELAS ${t}</th>`;
+    });
+    html+=`</tr><tr style="background:#dae8fc;font-weight:700;text-align:center;">`;
+    aktifTingkat.forEach(()=>{
+        html+=`<th style="border:1px solid #999;padding:4px 5px;min-width:28px;">NO</th>
+               <th style="border:1px solid #999;padding:4px 8px;min-width:80px;">KELAS</th>
+               <th style="border:1px solid #999;padding:4px 5px;min-width:30px;">L</th>
+               <th style="border:1px solid #999;padding:4px 5px;min-width:30px;">P</th>
+               <th style="border:1px solid #999;padding:4px 5px;min-width:40px;">JUMLAH</th>`;
+    });
+    html+=`</tr></thead><tbody>`;
+    for(let i=0;i<maxRows;i++){
+        let rowBg=i%2===0?"white":"#f0f4ff";
+        html+=`<tr style="background:${rowBg};text-align:center;">`;
+        aktifTingkat.forEach(t=>{
+            let r=tingkat[t][i];
+            if(r){
+                html+=`<td style="border:1px solid #ccc;padding:3px 5px;">${i+1}</td>
+                       <td style="border:1px solid #ccc;padding:3px 8px;text-align:left;font-weight:600;">${r.kelas}</td>
+                       <td style="border:1px solid #ccc;padding:3px 5px;">${r.L}</td>
+                       <td style="border:1px solid #ccc;padding:3px 5px;">${r.P}</td>
+                       <td style="border:1px solid #ccc;padding:3px 5px;font-weight:700;">${r.jumlah}</td>`;
+            }else{
+                html+=`<td colspan="5" style="border:1px solid #ccc;"></td>`;
+            }
+        });
+        html+=`</tr>`;
+    }
+    html+=`<tr style="background:#b7cdf7;font-weight:700;text-align:center;">`;
+    aktifTingkat.forEach(t=>{
+        let totL=tingkat[t].reduce((s,r)=>s+r.L,0);
+        let totP=tingkat[t].reduce((s,r)=>s+r.P,0);
+        let totJ=totL+totP;
+        html+=`<td colspan="2" style="border:1px solid #999;padding:5px 8px;text-align:center;">JUMLAH TOTAL</td>
+               <td style="border:1px solid #999;padding:5px;">${totL}</td>
+               <td style="border:1px solid #999;padding:5px;">${totP}</td>
+               <td style="border:1px solid #999;padding:5px;">${totJ}</td>`;
+    });
+    html+=`</tr></tbody></table></div>`;
+    let grandL=dataRekapDapodik2.reduce((s,r)=>s+r.L,0);
+    let grandP=dataRekapDapodik2.reduce((s,r)=>s+r.P,0);
+    let grandT=grandL+grandP;
+    html+=`<div style="display:flex;justify-content:center;margin-top:20px;page-break-inside:avoid;">
+        <table style="border-collapse:collapse;font-size:13px;font-weight:700;">
+            <tr>
+                <td rowspan="3" style="border:2px solid #333;padding:8px 20px;background:#c9daf8;font-size:13px;font-weight:800;text-align:center;vertical-align:middle;">JUMLAH TOTAL</td>
+                <td style="border:2px solid #333;padding:6px 14px;background:#dae8fc;text-align:center;">L</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#dae8fc;font-size:14px;text-align:center;">${grandL}</td>
+            </tr>
+            <tr>
+                <td style="border:2px solid #333;padding:6px 14px;background:#dae8fc;text-align:center;">P</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#dae8fc;font-size:14px;text-align:center;">${grandP}</td>
+            </tr>
+            <tr>
+                <td style="border:2px solid #333;padding:6px 14px;background:#ffe066;font-weight:800;text-align:center;">TOTAL</td>
+                <td style="border:2px solid #333;padding:6px 20px;background:#ffe066;font-size:16px;text-align:center;font-weight:900;">${grandT}</td>
+            </tr>
+        </table>
+    </div>
+    </div>`;
+    container.innerHTML=html;
+}
+
+function downloadRekapDapodik2PDF(){
+    if(!dataRekapDapodik2.length)return swal("Info","Muat data dahulu!","warning");
+    let el=document.getElementById("rekap-dapodik2-printable");
+    if(!el)return;
+    let bThn=getCutOffBulanTahun(cutOffDapodik2Str);
+    let fn="Rekap_Siswa_Aktif_"+(bThn.bulanNama||"")+"_"+(bThn.tahun||"")+".pdf";
+    let opt={margin:[8,6,8,6],filename:fn,image:{type:"jpeg",quality:0.98},html2canvas:{scale:2,useCORS:true,allowTaint:true,logging:false},jsPDF:{unit:"mm",format:"a4",orientation:"landscape"},pagebreak:{mode:["avoid-all","css"]}};
+    if(typeof html2pdf!=="undefined"){loading(true,"Membuat PDF...");html2pdf().set(opt).from(el).save().then(()=>loading(false)).catch(()=>loading(false));}
+    else window.print();
+}
+
+async function downloadRekapDapodik2Excel(){
+    if(!dataRekapDapodik2.length)return swal("Info","Muat data dahulu!","warning");
+    if(typeof ExcelJS==="undefined")return swal("Error","Library ExcelJS belum siap.","error");
+    loading(true,"Membuat Excel...");
+    let bThn=getCutOffBulanTahun(cutOffDapodik2Str);
+    let bulanStr=bThn.bulanNama?bThn.bulanNama.toUpperCase():"";
+    let tahunStr=bThn.tahun?String(bThn.tahun):"";
+    let cutoffDisplay=formatCutOffDisplay(cutOffDapodik2Str);
+    let namaSekolah=namaSekolahDapodik2||"SEKOLAH";
+    let tingkat={"X":[],"XI":[],"XII":[]};
+    dataRekapDapodik2.forEach(r=>{
+        if(/^XII\b/.test(r.kelas)) tingkat["XII"].push(r);
+        else if(/^XI\b/.test(r.kelas)) tingkat["XI"].push(r);
+        else tingkat["X"].push(r);
+    });
+    let aktifT=["X","XI","XII"].filter(t=>tingkat[t].length>0);
+    let maxRows=Math.max(...aktifT.map(t=>tingkat[t].length));
+    let nCol=aktifT.length*5;
+    const C_H1="FFC9DAF8",C_H2="FFDAE8FC",C_ALT="FFF0F4FF",C_TOT="FFB7CDF7",C_BLUE="FFDAE8FC",C_YEL="FFFFE066";
+    const B={top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+    const BM={top:{style:"medium"},left:{style:"medium"},bottom:{style:"medium"},right:{style:"medium"}};
+    const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet("Rekap Siswa Aktif");
+    let cw=[];aktifT.forEach(()=>cw.push(5,16,6,6,9));ws.columns=cw.map(w=>({width:w}));
+    ws.addRow(["REKAP JUMLAH SISWA AKTIF "+namaSekolah]);ws.mergeCells(1,1,1,nCol);
+    let r1=ws.getRow(1);r1.height=18;r1.getCell(1).font={bold:true,size:13};r1.getCell(1).alignment={horizontal:"center",vertical:"middle"};
+    ws.addRow(["BULAN "+bulanStr+" TAHUN PELAJARAN "+tahunStr]);ws.mergeCells(2,1,2,nCol);
+    let r2=ws.getRow(2);r2.height=16;r2.getCell(1).font={bold:true,size:12};r2.getCell(1).alignment={horizontal:"center",vertical:"middle"};
+    ws.addRow(["CutOff Dapodik "+cutoffDisplay]);ws.mergeCells(3,1,3,nCol);
+    let r3=ws.getRow(3);r3.getCell(1).font={italic:true,size:10,color:{argb:"FF444444"}};r3.getCell(1).alignment={horizontal:"left"};
+    ws.addRow([]);
+    let rHG=ws.addRow([]);rHG.height=16;
+    aktifT.forEach((t,i)=>{
+        let sc=i*5+1;let cell=rHG.getCell(sc);cell.value="KELAS "+t;cell.font={bold:true,size:11};
+        cell.alignment={horizontal:"center",vertical:"middle"};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_H1}};cell.border=B;
+        ws.mergeCells(5,sc,5,sc+4);
+        for(let c=sc;c<=sc+4;c++){let mc=rHG.getCell(c);mc.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_H1}};mc.border=B;}
+    });
+    let rHK=ws.addRow([]);rHK.height=15;
+    aktifT.forEach((_,i)=>{
+        let sc=i*5+1;
+        ["NO","KELAS","L","P","JUMLAH"].forEach((h,j)=>{
+            let cell=rHK.getCell(sc+j);cell.value=h;cell.font={bold:true,size:10};
+            cell.alignment={horizontal:"center",vertical:"middle"};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_H2}};cell.border=B;
+        });
+    });
+    for(let i=0;i<maxRows;i++){
+        let rD=ws.addRow([]);rD.height=14;let isAlt=(i%2===1);
+        aktifT.forEach((t,ti)=>{
+            let sc=ti*5+1;let r=tingkat[t][i];let vals=r?[i+1,r.kelas,r.L,r.P,r.jumlah]:["","","","",""];
+            vals.forEach((v,j)=>{
+                let cell=rD.getCell(sc+j);cell.value=v;cell.alignment={horizontal:"center",vertical:"middle"};
+                if(j===1) cell.alignment={horizontal:"left",vertical:"middle"};
+                if(j===1&&r) cell.font={bold:true,size:10};
+                if(isAlt) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_ALT}};
+                cell.border=B;
+            });
+        });
+    }
+    let rTot=ws.addRow([]);rTot.height=15;
+    aktifT.forEach((t,i)=>{
+        let sc=i*5+1;let totL=tingkat[t].reduce((s,r)=>s+r.L,0);let totP=tingkat[t].reduce((s,r)=>s+r.P,0);let totJ=totL+totP;
+        ["JUMLAH TOTAL","",totL,totP,totJ].forEach((v,j)=>{
+            let cell=rTot.getCell(sc+j);cell.value=v;cell.font={bold:true,size:10};
+            cell.alignment={horizontal:"center",vertical:"middle"};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_TOT}};cell.border=B;
+        });
+        ws.mergeCells(ws.rowCount,sc,ws.rowCount,sc+1);
+    });
+    ws.addRow([]);
+    let midStart=Math.floor(nCol/2)-2;if(midStart<1)midStart=1;
+    let grandL=dataRekapDapodik2.reduce((s,r)=>s+r.L,0);
+    let grandP=dataRekapDapodik2.reduce((s,r)=>s+r.P,0);
+    let grandT=grandL+grandP;
+    let gR1=ws.addRow([]);gR1.height=16;let gR2=ws.addRow([]);gR2.height=16;let gR3=ws.addRow([]);gR3.height=18;
+    let rn1=ws.rowCount-2,rn2=ws.rowCount-1,rn3=ws.rowCount;
+    [[rn1,"JUMLAH TOTAL","L",grandL,C_BLUE],[rn2,"","P",grandP,C_BLUE],[rn3,"TOTAL","",grandT,C_YEL]].forEach(([rn,lab,lp,val,clr])=>{
+        let row=ws.getRow(rn);
+        let c1=row.getCell(midStart);let c2=row.getCell(midStart+1);let c3=row.getCell(midStart+2);
+        c1.value=lab||"";c1.font={bold:true,size:11};c1.alignment={horizontal:"center",vertical:"middle"};c1.fill={type:"pattern",pattern:"solid",fgColor:{argb:C_BLUE}};c1.border=BM;
+        c2.value=lp;c2.font={bold:true,size:11};c2.alignment={horizontal:"center",vertical:"middle"};c2.fill={type:"pattern",pattern:"solid",fgColor:{argb:clr}};c2.border=BM;
+        c3.value=val;c3.font={bold:true,size:rn===rn3?14:12};c3.alignment={horizontal:"center",vertical:"middle"};c3.fill={type:"pattern",pattern:"solid",fgColor:{argb:clr}};c3.border=BM;
+    });
+    ws.mergeCells(rn1,midStart,rn2,midStart);
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=url;a.download="Rekap_Siswa_Aktif_"+(bulanStr||"")+"_"+(tahunStr||"")+".xlsx";
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},1000);
+    loading(false);
 }
 
 function downloadRekapDapodikPDF(){
@@ -1746,23 +2002,127 @@ function loadRekapAbsenSiswa(){
 function renderRekapAbsenSiswa(kls,bln,thn){
     let container=document.getElementById("ras-container");
     let data=dataRekapAbsenSiswa;
-    let nmBln=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][parseInt(bln)];
+    let nmBln=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][parseInt(bln)]||"Semua Bulan";
+    let judulBulan=(String(bln).toUpperCase()==="SEMUA")?"SEMUA BULAN":nmBln.toUpperCase()+" "+thn;
     if(!data.length){container.innerHTML='<p style="color:#94a3b8;text-align:center;padding:30px;">Tidak ada data untuk kelas ini.</p>';return;}
-    let totH=0,totS=0,totI=0,totA=0,totT=0,totB=0,totD=0;
-    data.forEach(r=>{totH+=r.H;totS+=r.S;totI+=r.I;totA+=r.A;totT+=r.T;totB+=r.B;totD+=r.D;});
-    let cs="padding:7px 5px;border:1px solid #e2e8f0;text-align:center;";
-    let ts="padding:8px 5px;border:1px solid #c9daf8;text-align:center;font-weight:700;";
+
+    // Deteksi apakah data mengandung bulanData (multi-bulan)
+    let isMultiBulan = data[0] && data[0].bulanData && typeof data[0].bulanData === 'object';
+
+    // Tentukan bulan mana yang aktif
+    let bulanAktif = [];
+    if(isMultiBulan){
+        let bulanSet={};
+        data.forEach(r=>{ if(r.bulanData) Object.keys(r.bulanData).forEach(b=>bulanSet[parseInt(b)]=true); });
+        bulanAktif = Object.keys(bulanSet).map(Number).sort((a,b)=>a-b);
+    }
+
+    let namaBln=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    let cs="padding:5px 4px;border:1px solid #e2e8f0;text-align:center;font-size:.78rem;";
+    let ts="padding:6px 4px;border:1px solid #c9daf8;text-align:center;font-weight:700;font-size:.78rem;";
+
     let h=`<div style="text-align:center;font-weight:700;font-size:1rem;background:#1e3a5f;color:white;padding:10px;border-radius:8px 8px 0 0;">
-        REKAP ABSENSI KELAS ${kls.toUpperCase()} &mdash; ${nmBln.toUpperCase()} ${thn}
-        <span style="font-weight:400;font-size:.8rem;margin-left:10px;opacity:.85;">Hari Efektif: ${rasHariEfektif}</span>
+        Kelas : ${kls.toUpperCase()} &mdash; ${judulBulan}
+        ${rasHariEfektif?`<span style="font-weight:400;font-size:.8rem;margin-left:10px;opacity:.85;">Hari Efektif: ${rasHariEfektif}</span>`:''}
     </div>
-    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.82rem;white-space:nowrap;">
-        <thead><tr style="background:#c9daf8;">
-            <th style="${ts}">No</th>
-            <th style="${ts}">No.<br>Absen</th>
+    <div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:.78rem;white-space:nowrap;">`;
+
+    if(isMultiBulan && bulanAktif.length > 0){
+        // Header baris 1: NO | NO.INDUK | L/P | NAMA | [NamaBulan colspan=7] x N | REKAP colspan=7
+        h+=`<thead>
+        <tr style="background:#c9daf8;font-weight:700;text-align:center;">
+            <th rowspan="2" style="${ts}">NO</th>
+            <th rowspan="2" style="${ts}">NO.<br>INDUK</th>
+            <th rowspan="2" style="${ts}">L/P</th>
+            <th rowspan="2" style="${ts}min-width:130px;text-align:left;padding-left:8px;">NAMA</th>`;
+        bulanAktif.forEach(b=>{
+            h+=`<th colspan="7" style="${ts}background:#b8cce4;border:1px solid #999;">${namaBln[b].toUpperCase()}</th>`;
+        });
+        h+=`<th colspan="7" style="${ts}background:#f4b942;border:1px solid #999;color:#7a3d00;">REKAP</th>`;
+        h+=`</tr>
+        <tr style="background:#dae8fc;font-weight:700;text-align:center;">`;
+        // Baris 2: H S I A T B D per bulan + rekap
+        let subCols=['H','S','I','A','T','B','D'];
+        let subColors=['#d9ead3','#fff3cd','#cfe2ff','#f8d7da','#e2d9f3','#d3d3d3','#fce4ec'];
+        let subText=['#1e7e34','#856404','#084298','#842029','#432874','#1e293b','#880e4f'];
+        bulanAktif.forEach(()=>{
+            subCols.forEach((c,i)=>{
+                h+=`<th style="${ts}background:${subColors[i]};color:${subText[i]};min-width:22px;">${c}</th>`;
+            });
+        });
+        // Rekap
+        subCols.forEach((c,i)=>{
+            h+=`<th style="${ts}background:${subColors[i]};color:${subText[i]};min-width:22px;">${c}</th>`;
+        });
+        h+=`</tr></thead><tbody>`;
+
+        let totBulan={};
+        bulanAktif.forEach(b=>{ totBulan[b]={H:0,S:0,I:0,A:0,T:0,B:0,D:0}; });
+        let totRekap={H:0,S:0,I:0,A:0,T:0,B:0,D:0};
+
+        data.forEach((r,i)=>{
+            let bg=i%2===0?'white':'#f8fafc';
+            h+=`<tr style="background:${bg}">
+                <td style="${cs}">${i+1}</td>
+                <td style="${cs}">${r.nis||''}</td>
+                <td style="${cs}">${r.lp||''}</td>
+                <td style="${cs}text-align:left;font-weight:500;padding-left:8px;">${r.nama}</td>`;
+            let totH=0,totS=0,totI=0,totA=0,totT=0,totB=0,totD=0;
+            bulanAktif.forEach(b=>{
+                let bd=r.bulanData[b]||{H:0,S:0,I:0,A:0,T:0,B:0,D:0};
+                h+=`<td style="${cs}color:#198754;">${bd.H||0}</td>
+                    <td style="${cs}color:#f59e0b;">${bd.S||0}</td>
+                    <td style="${cs}color:#2563eb;">${bd.I||0}</td>
+                    <td style="${cs}color:#ef4444;">${bd.A||0}</td>
+                    <td style="${cs}color:#8b5cf6;">${bd.T||0}</td>
+                    <td style="${cs}color:#475569;">${bd.B||0}</td>
+                    <td style="${cs}color:#ec4899;">${bd.D||0}</td>`;
+                totBulan[b].H+=bd.H||0; totBulan[b].S+=bd.S||0; totBulan[b].I+=bd.I||0;
+                totBulan[b].A+=bd.A||0; totBulan[b].T+=bd.T||0; totBulan[b].B+=bd.B||0; totBulan[b].D+=bd.D||0;
+                totH+=bd.H||0; totS+=bd.S||0; totI+=bd.I||0; totA+=bd.A||0; totT+=bd.T||0; totB+=bd.B||0; totD+=bd.D||0;
+            });
+            totRekap.H+=totH; totRekap.S+=totS; totRekap.I+=totI; totRekap.A+=totA;
+            totRekap.T+=totT; totRekap.B+=totB; totRekap.D+=totD;
+            h+=`<td style="${cs}color:#198754;font-weight:600;">${totH}</td>
+                <td style="${cs}color:#f59e0b;">${totS}</td>
+                <td style="${cs}color:#2563eb;">${totI}</td>
+                <td style="${cs}color:#ef4444;">${totA}</td>
+                <td style="${cs}color:#8b5cf6;">${totT}</td>
+                <td style="${cs}color:#475569;">${totB}</td>
+                <td style="${cs}color:#ec4899;">${totD}</td>
+            </tr>`;
+        });
+        // Baris total
+        h+=`<tr style="background:#e2e8f0;font-weight:700;text-align:center;">
+            <td colspan="4" style="${cs}background:#e2e8f0;font-weight:700;">TOTAL</td>`;
+        bulanAktif.forEach(b=>{
+            let bd=totBulan[b];
+            h+=`<td style="${cs}background:#e2e8f0;">${bd.H}</td><td style="${cs}background:#e2e8f0;">${bd.S}</td>
+                <td style="${cs}background:#e2e8f0;">${bd.I}</td><td style="${cs}background:#e2e8f0;">${bd.A}</td>
+                <td style="${cs}background:#e2e8f0;">${bd.T}</td><td style="${cs}background:#e2e8f0;">${bd.B}</td>
+                <td style="${cs}background:#e2e8f0;">${bd.D}</td>`;
+        });
+        h+=`<td style="${cs}background:#e2e8f0;">${totRekap.H}</td><td style="${cs}background:#e2e8f0;">${totRekap.S}</td>
+            <td style="${cs}background:#e2e8f0;">${totRekap.I}</td><td style="${cs}background:#e2e8f0;">${totRekap.A}</td>
+            <td style="${cs}background:#e2e8f0;">${totRekap.T}</td><td style="${cs}background:#e2e8f0;">${totRekap.B}</td>
+            <td style="${cs}background:#e2e8f0;">${totRekap.D}</td>
+        </tr>`;
+
+    } else {
+        // Format per-bulan tunggal (data lama: H,S,I,A,T,B,D langsung di r)
+        let totH=0,totS=0,totI=0,totA=0,totT=0,totB=0,totD=0;
+        data.forEach(r=>{totH+=r.H;totS+=r.S;totI+=r.I;totA+=r.A;totT+=r.T;totB+=r.B;totD+=r.D;});
+        h+=`<thead>
+        <tr style="background:#c9daf8;">
+            <th style="${ts}">NO</th>
+            <th style="${ts}">NO.<br>INDUK</th>
             <th style="${ts}">NIS</th>
-            <th style="${ts}min-width:140px;text-align:left;">Nama Siswa</th>
+            <th style="${ts}min-width:140px;text-align:left;padding-left:8px;">NAMA SISWA</th>
             <th style="${ts}">L/P</th>
+            <th colspan="7" style="${ts}background:#b8cce4;">${nmBln.toUpperCase()}</th>
+        </tr>
+        <tr style="background:#dae8fc;">
+            <th colspan="5" style="${ts}"></th>
             <th style="${ts}background:#d9ead3;color:#1e7e34;">H</th>
             <th style="${ts}background:#fff3cd;color:#856404;">S</th>
             <th style="${ts}background:#cfe2ff;color:#084298;">I</th>
@@ -1771,33 +2131,35 @@ function renderRekapAbsenSiswa(kls,bln,thn){
             <th style="${ts}background:#d3d3d3;color:#1e293b;">B</th>
             <th style="${ts}background:#fce4ec;color:#880e4f;">D</th>
         </tr></thead><tbody>`;
-    data.forEach((r,i)=>{
-        let bg=i%2===0?'white':'#f8fafc';
-        h+=`<tr style="background:${bg}">
-            <td style="${cs}">${i+1}</td>
-            <td style="${cs}">${r.noAbsen||''}</td>
-            <td style="${cs}">${r.nis}</td>
-            <td style="${cs}text-align:left;font-weight:500;">${r.nama}</td>
-            <td style="${cs}">${r.lp||''}</td>
-            <td style="${cs}color:#198754;font-weight:600;">${r.H}</td>
-            <td style="${cs}color:#f59e0b;">${r.S}</td>
-            <td style="${cs}color:#2563eb;">${r.I}</td>
-            <td style="${cs}color:#ef4444;">${r.A}</td>
-            <td style="${cs}color:#8b5cf6;">${r.T}</td>
-            <td style="${cs}color:#475569;">${r.B}</td>
-            <td style="${cs}color:#ec4899;">${r.D}</td>
+        data.forEach((r,i)=>{
+            let bg=i%2===0?'white':'#f8fafc';
+            h+=`<tr style="background:${bg}">
+                <td style="${cs}">${i+1}</td>
+                <td style="${cs}">${r.noAbsen||''}</td>
+                <td style="${cs}">${r.nis}</td>
+                <td style="${cs}text-align:left;font-weight:500;padding-left:8px;">${r.nama}</td>
+                <td style="${cs}">${r.lp||''}</td>
+                <td style="${cs}color:#198754;font-weight:600;">${r.H}</td>
+                <td style="${cs}color:#f59e0b;">${r.S}</td>
+                <td style="${cs}color:#2563eb;">${r.I}</td>
+                <td style="${cs}color:#ef4444;">${r.A}</td>
+                <td style="${cs}color:#8b5cf6;">${r.T}</td>
+                <td style="${cs}color:#475569;">${r.B}</td>
+                <td style="${cs}color:#ec4899;">${r.D}</td>
+            </tr>`;
+        });
+        h+=`<tr style="background:#e2e8f0;font-weight:700;">
+            <td colspan="5" style="${cs}text-align:center;background:#e2e8f0;">TOTAL</td>
+            <td style="${cs}color:#198754;">${totH}</td>
+            <td style="${cs}color:#f59e0b;">${totS}</td>
+            <td style="${cs}color:#2563eb;">${totI}</td>
+            <td style="${cs}color:#ef4444;">${totA}</td>
+            <td style="${cs}color:#8b5cf6;">${totT}</td>
+            <td style="${cs}color:#475569;">${totB}</td>
+            <td style="${cs}color:#ec4899;">${totD}</td>
         </tr>`;
-    });
-    h+=`<tr style="background:#e2e8f0;font-weight:700;">
-        <td colspan="5" style="${cs}text-align:center;">TOTAL</td>
-        <td style="${cs}color:#198754;">${totH}</td>
-        <td style="${cs}color:#f59e0b;">${totS}</td>
-        <td style="${cs}color:#2563eb;">${totI}</td>
-        <td style="${cs}color:#ef4444;">${totA}</td>
-        <td style="${cs}color:#8b5cf6;">${totT}</td>
-        <td style="${cs}color:#475569;">${totB}</td>
-        <td style="${cs}color:#ec4899;">${totD}</td>
-    </tr></tbody></table></div>
+    }
+    h+=`</tbody></table></div>
     <div style="font-size:.78rem;color:#64748b;margin-top:8px;"><b>Ket:</b> H=Hadir &nbsp; S=Sakit &nbsp; I=Ijin &nbsp; A=Alpa &nbsp; T=Terlambat &nbsp; B=Bolos &nbsp; D=Dispen</div>`;
     container.innerHTML=h;
 }
@@ -1807,25 +2169,76 @@ function exportRekapAbsenSiswa(){
     let kls=document.getElementById("rasKelas").value;
     let bln=document.getElementById("rasBulan").value;
     let thn=document.getElementById("rasTahun").value;
-    let nmBln=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][parseInt(bln)];
-    let rows=[
-        [`REKAP ABSENSI KELAS ${kls.toUpperCase()} - ${nmBln.toUpperCase()} ${thn}`],
-        [`Hari Efektif: ${rasHariEfektif}`],
-        [],
-        ["No","No.Absen","NIS","Nama Siswa","L/P","H","S","I","A","T","B","D"]
-    ];
-    let totH=0,totS=0,totI=0,totA=0,totT=0,totB=0,totD=0;
-    dataRekapAbsenSiswa.forEach((r,i)=>{
-        rows.push([i+1,r.noAbsen||'',r.nis,r.nama,r.lp||'',r.H,r.S,r.I,r.A,r.T,r.B,r.D]);
-        totH+=r.H;totS+=r.S;totI+=r.I;totA+=r.A;totT+=r.T;totB+=r.B;totD+=r.D;
-    });
-    rows.push(["","","","TOTAL","",totH,totS,totI,totA,totT,totB,totD]);
+    let isMultiBulan=dataRekapAbsenSiswa[0]&&dataRekapAbsenSiswa[0].bulanData&&typeof dataRekapAbsenSiswa[0].bulanData==='object';
+    let nmBln=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][parseInt(bln)]||"Semua Bulan";
+    let judulBulan=(String(bln).toUpperCase()==="SEMUA")?"SEMUA BULAN":nmBln.toUpperCase()+" "+thn;
     let wb=XLSX.utils.book_new();
-    let ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:11}},{s:{r:1,c:0},e:{r:1,c:11}}];
-    ws['!cols']=[{wch:4},{wch:7},{wch:12},{wch:28},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5}];
-    XLSX.utils.book_append_sheet(wb,ws,"Rekap Absen "+kls);
-    XLSX.writeFile(wb,`Rekap_Absen_${kls}_${nmBln}_${thn}.xlsx`);
+
+    if(isMultiBulan){
+        // Multi-bulan: header nama bulan di atas, HSIATBD di bawah
+        let bulanSet={};
+        dataRekapAbsenSiswa.forEach(r=>{ if(r.bulanData) Object.keys(r.bulanData).forEach(b=>bulanSet[parseInt(b)]=true); });
+        let bulanAktif=Object.keys(bulanSet).map(Number).sort((a,b)=>a-b);
+        let namaBln=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+        let subCols=['H','S','I','A','T','B','D'];
+        // Baris judul
+        let nCols=4+bulanAktif.length*7+7;
+        let row1=[`REKAP ABSENSI KELAS ${kls.toUpperCase()} - ${judulBulan}`];
+        let row2=[]; // nama bulan merge
+        let row3=["No","No.Induk","L/P","Nama Siswa"];
+        bulanAktif.forEach(b=>{row2.push(namaBln[b].toUpperCase(),"","","","","","");subCols.forEach(c=>row3.push(c));});
+        row2.push("REKAP","","","","","","");subCols.forEach(c=>row3.push(c));
+        let rows=[row1,[],row2,row3];
+        let totBulan={};bulanAktif.forEach(b=>{totBulan[b]={H:0,S:0,I:0,A:0,T:0,B:0,D:0};});
+        let totRekap={H:0,S:0,I:0,A:0,T:0,B:0,D:0};
+        dataRekapAbsenSiswa.forEach((r,i)=>{
+            let row=[i+1,r.nis||r.noAbsen||'',r.lp||'',r.nama];
+            let totH=0,totS=0,totI=0,totA=0,totT=0,totB=0,totD=0;
+            bulanAktif.forEach(b=>{
+                let bd=r.bulanData[b]||{H:0,S:0,I:0,A:0,T:0,B:0,D:0};
+                subCols.forEach(c=>row.push(bd[c]||0));
+                totBulan[b].H+=bd.H||0;totBulan[b].S+=bd.S||0;totBulan[b].I+=bd.I||0;
+                totBulan[b].A+=bd.A||0;totBulan[b].T+=bd.T||0;totBulan[b].B+=bd.B||0;totBulan[b].D+=bd.D||0;
+                totH+=bd.H||0;totS+=bd.S||0;totI+=bd.I||0;totA+=bd.A||0;totT+=bd.T||0;totB+=bd.B||0;totD+=bd.D||0;
+            });
+            row.push(totH,totS,totI,totA,totT,totB,totD);
+            totRekap.H+=totH;totRekap.S+=totS;totRekap.I+=totI;totRekap.A+=totA;totRekap.T+=totT;totRekap.B+=totB;totRekap.D+=totD;
+            rows.push(row);
+        });
+        let totRow=["","","TOTAL",""];
+        bulanAktif.forEach(b=>{let bd=totBulan[b];subCols.forEach(c=>totRow.push(bd[c]));});
+        subCols.forEach(c=>totRow.push(totRekap[c]));
+        rows.push(totRow);
+        let ws=XLSX.utils.aoa_to_sheet(rows);
+        let mc=[{s:{r:0,c:0},e:{r:0,c:nCols-1}}];
+        let startC=4;
+        bulanAktif.forEach(b=>{mc.push({s:{r:2,c:startC},e:{r:2,c:startC+6}});startC+=7;});
+        mc.push({s:{r:2,c:startC},e:{r:2,c:startC+6}});
+        ws['!merges']=mc;
+        let colW=[{wch:4},{wch:8},{wch:4},{wch:28}];
+        for(let i=0;i<(bulanAktif.length+1)*7;i++) colW.push({wch:4});
+        ws['!cols']=colW;
+        XLSX.utils.book_append_sheet(wb,ws,"Rekap Absen "+kls);
+        XLSX.writeFile(wb,`Rekap_Absen_${kls}_SemBulan_${thn}.xlsx`);
+    } else {
+        let rows=[
+            [`REKAP ABSENSI KELAS ${kls.toUpperCase()} - ${judulBulan}`],
+            [`Hari Efektif: ${rasHariEfektif}`],
+            [],
+            ["No","No.Absen","NIS","Nama Siswa","L/P","H","S","I","A","T","B","D"]
+        ];
+        let totH=0,totS=0,totI=0,totA=0,totT=0,totB=0,totD=0;
+        dataRekapAbsenSiswa.forEach((r,i)=>{
+            rows.push([i+1,r.noAbsen||'',r.nis,r.nama,r.lp||'',r.H,r.S,r.I,r.A,r.T,r.B,r.D]);
+            totH+=r.H;totS+=r.S;totI+=r.I;totA+=r.A;totT+=r.T;totB+=r.B;totD+=r.D;
+        });
+        rows.push(["","","","TOTAL","",totH,totS,totI,totA,totT,totB,totD]);
+        let ws=XLSX.utils.aoa_to_sheet(rows);
+        ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:11}},{s:{r:1,c:0},e:{r:1,c:11}}];
+        ws['!cols']=[{wch:4},{wch:7},{wch:12},{wch:28},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5}];
+        XLSX.utils.book_append_sheet(wb,ws,"Rekap Absen "+kls);
+        XLSX.writeFile(wb,`Rekap_Absen_${kls}_${nmBln}_${thn}.xlsx`);
+    }
 }
 
 // REKAP SISWA AKTIF (KEPALA SEKOLAH)
@@ -1898,64 +2311,26 @@ function renderRekapSiswaAktif(){
         container.innerHTML='<p style="color:#94a3b8;text-align:center;padding:30px;">Tidak ada data siswa aktif.</p>';
         return;
     }
-
-    // Pisah per tingkat
     let tingkat={"X":[],"XI":[],"XII":[]};
     dataRekapSiswaAktif.forEach(r=>{
         if(/^XII\b/.test(r.kelas)) tingkat["XII"].push(r);
         else if(/^XI\b/.test(r.kelas)) tingkat["XI"].push(r);
         else if(/^X\b/.test(r.kelas)) tingkat["X"].push(r);
-        else {
-            // Masukkan ke XII sebagai fallback atau buat grup sendiri
-            if(!tingkat["Lain"]) tingkat["Lain"]=[];
-            tingkat["Lain"].push(r);
-        }
+        else { if(!tingkat["Lain"]) tingkat["Lain"]=[]; tingkat["Lain"].push(r); }
     });
-
-    let bThn = getCutOffBulanTahun(cutOffDapodikStr);
-    let bulanStr = bThn.bulanNama ? bThn.bulanNama.toUpperCase() : "";
-    let tahunStr = bThn.tahun ? String(bThn.tahun) : "";
-    let cutoffDisplay = formatCutOffDisplay(cutOffDapodikStr);
-    let namaSekolah = namaSekolahGlobal || "SEKOLAH";
-
-    // Grup yang ada isinya
-    let aktifTingkat = ["X","XI","XII"].filter(t=>tingkat[t]&&tingkat[t].length>0);
+    let bThn=getCutOffBulanTahun(cutOffDapodikStr);
+    let bulanStr=bThn.bulanNama?bThn.bulanNama.toUpperCase():"";
+    let tahunStr=bThn.tahun?String(bThn.tahun):"";
+    let cutoffDisplay=formatCutOffDisplay(cutOffDapodikStr);
+    let namaSekolah=namaSekolahGlobal||"SEKOLAH";
+    let aktifTingkat=["X","XI","XII"].filter(t=>tingkat[t]&&tingkat[t].length>0);
     if(tingkat["Lain"]&&tingkat["Lain"].length>0) aktifTingkat.push("Lain");
+    let maxRows=Math.max(...aktifTingkat.map(t=>tingkat[t].length));
 
-    // Hitung maks baris per kolom
-    let maxRows = Math.max(...aktifTingkat.map(t=>tingkat[t].length));
-
-    // Bangun HTML
-    let html=`
-    <div id="rekap-print-area" style="font-family:Arial,sans-serif;font-size:12px;">
+    let html=`<div id="rekap-print-area" style="font-family:Arial,sans-serif;font-size:12px;">
         <div style="text-align:center;margin-bottom:4px;">
             <div style="font-weight:700;font-size:14px;">REKAP JUMLAH SISWA AKTIF ${namaSekolah}</div>
-            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} ${tahunStr}</div>
-        </div>
-        <div style="font-size:11px;margin-bottom:8px;color:#444;">CutOff Dapodik ${cutoffDisplay}</div>
-        <div style="overflow-x:auto;">
-        <table id="tbl-rekap-siswa" style="border-collapse:collapse;width:100%;font-size:11px;">
-        <thead>
-        <tr style="background:#c9daf8;font-weight:700;text-align:center;">`;
-
-    // Header per tingkat (3 grup kolom)
-    aktifTingkat.forEach(t=>{
-        html+=`<th colspan="4" style="border:1px solid #999;padding:5px;text-align:center;">KELAS ${t}</th>`;
-    });
-    html+=`</tr><tr style="background:#dae8fc;font-weight:700;text-align:center;">`;
-    aktifTingkat.forEach(()=>{
-        html+=`<th style="border:1px solid #999;padding:4px 6px;">NO</th>
-               <th style="border:1px solid #999;padding:4px 6px;">KELAS</th>
-               <th style="border:1px solid #999;padding:4px 6px;">L</th>
-               <th style="border:1px solid #999;padding:4px 6px;">P</th>`;
-    });
-    // Tambah kolom JUMLAH setelah 4 kolom per tingkat? — cek gambar: ada kolom JUMLAH
-    // Rebuild dengan 5 kolom per grup: NO|KELAS|L|P|JUMLAH
-    html=`
-    <div id="rekap-print-area" style="font-family:Arial,sans-serif;font-size:12px;">
-        <div style="text-align:center;margin-bottom:4px;">
-            <div style="font-weight:700;font-size:14px;">REKAP JUMLAH SISWA AKTIF ${namaSekolah}</div>
-            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} ${tahunStr}</div>
+            <div style="font-weight:700;font-size:13px;">BULAN ${bulanStr} TAHUN PELAJARAN ${tahunStr}</div>
         </div>
         <div style="font-size:11px;margin-bottom:8px;color:#444;">CutOff Dapodik ${cutoffDisplay}</div>
         <div style="overflow-x:auto;">
@@ -1974,10 +2349,8 @@ function renderRekapSiswaAktif(){
                <th style="border:1px solid #999;padding:4px 5px;min-width:40px;">JUMLAH</th>`;
     });
     html+=`</tr></thead><tbody>`;
-
-    // Baris data
     for(let i=0;i<maxRows;i++){
-        let rowBg = i%2===0?"white":"#f0f4ff";
+        let rowBg=i%2===0?"white":"#f0f4ff";
         html+=`<tr style="background:${rowBg};text-align:center;">`;
         aktifTingkat.forEach(t=>{
             let r=tingkat[t][i];
@@ -1993,8 +2366,6 @@ function renderRekapSiswaAktif(){
         });
         html+=`</tr>`;
     }
-
-    // Baris JUMLAH TOTAL per tingkat
     html+=`<tr style="background:#b7cdf7;font-weight:700;text-align:center;">`;
     aktifTingkat.forEach(t=>{
         let totL=tingkat[t].reduce((s,r)=>s+r.L,0);
@@ -2006,8 +2377,6 @@ function renderRekapSiswaAktif(){
                <td style="border:1px solid #999;padding:5px;">${totJ}</td>`;
     });
     html+=`</tr></tbody></table></div>`;
-
-    // Grand total — tengah bawah, dibungkus avoid page-break
     let grandL=dataRekapSiswaAktif.reduce((s,r)=>s+r.L,0);
     let grandP=dataRekapSiswaAktif.reduce((s,r)=>s+r.P,0);
     let grandT=grandL+grandP;
@@ -2029,7 +2398,6 @@ function renderRekapSiswaAktif(){
         </table>
     </div>
     </div>`;
-
     container.innerHTML=html;
 }
 
